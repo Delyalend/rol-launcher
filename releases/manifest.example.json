@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "latest": "v0.2.0",
+  "versions": [
+    {
+      "id": "v0.1.0",
+      "date": "2026-09-06T00:00:00Z",
+      "changelog": [
+        "First release: base game version"
+      ],
+      "base": {
+        "parts": [
+          { "file": "base-v0.1.0.zip.001", "size": 1992294400, "sha256": "TODO-хэш-тома-1" },
+          { "file": "base-v0.1.0.zip.002", "size": 500000000, "sha256": "TODO-хэш-тома-2" }
+        ]
+      },
+      "updates_from": {},
+      "files": {
+        "legends.exe": { "s": 15548416, "h": "TODO" },
+        "BIGS/mod_data.big": { "s": 696691, "h": "TODO" }
+      }
+    },
+    {
+      "id": "v0.2.0",
+      "date": "2026-09-06T00:00:00Z",
+      "changelog": [
+        "Example entry with an update package"
+      ],
+      "updates_from": {
+        "v0.1.0": {
+          "file": "update-v0.1.0-v0.2.0.zip",
+          "size": 48211,
+          "sha256": "TODO-хэш-пакета"
+        }
+      },
+      "files": {
+        "legends.exe": { "s": 15548416, "h": "TODO" },
+        "BIGS/mod_data.big": { "s": 700000, "h": "TODO" }
+      }
+    }
+  ]
+}

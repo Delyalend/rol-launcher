@@ -4,7 +4,11 @@ Rise Of Legends/
 *.7z
 *.7z.0*
 *.zip
+*.zip.0*
 *.rar
+
+# Артефакты релизов (тома базы, update-пакеты)
+release/
 
 # Артефакты сборки
 build/
