@@ -12,28 +12,28 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Сборка релиза: update-пакеты и обновление манифеста.
+ * Release build: update packages and manifest update.
  *
- * Сканирует папку новой версии игры и для КАЖДОЙ старой версии из манифеста
- * собирает update-пакет (изменённые + добавленные файлы, внутри служебный
- * .rol-removed.txt со списком удалённых). Добавляет запись новой версии
- * в manifest.json и ставит её в "latest".
+ * Scans the new game folder and, for EVERY old version in the manifest,
+ * builds an update package (changed + added files; a special
+ * .rol-removed.txt inside holds the deletion list). Adds the new version
+ * entry to manifest.json and sets it as "latest".
  *
- * Пакет самодостаточен: лаунчер распаковывает его поверх установки,
- * удаляет файлы из .rol-removed.txt и сверяет SHA-256 с манифестом.
+ * A package is self-contained: the launcher extracts it over the
+ * installation, deletes files from .rol-removed.txt and verifies SHA-256
+ * against the manifest.
  *
- * Аргументы (после folder):
- *   --version vX.Y.Z        обязательный
- *   --changelog файл.txt    строки файла = пункты чейнджлога
- *   --manifest путь.json    по умолчанию releases/manifest.json
- *   --out папка             по умолчанию release
- *   --recent N              пакеты только для последних N версий
- *   --base ч1,ч2            тома базового архива (ребейз): посчитает size+sha256
+ * Arguments (after folder):
+ *   --version vX.Y.Z        required
+ *   --changelog file.txt    lines of the file become changelog items
+ *   --manifest path.json    default: releases/manifest.json
+ *   --out folder            default: release
+ *   --recent N              packages only for the last N versions
+ *   --base v1,v2            base archive volumes (rebase): size+sha256 are computed
  */
 final class BuildRelease {
 
@@ -61,24 +61,24 @@ final class BuildRelease {
                 case "--base" -> baseCsv = args.get(++i);
                 default -> {
                     if (folder == null && !a.startsWith("--")) folder = a;
-                    else throw new IllegalArgumentException("неизвестный аргумент: " + a);
+                    else throw new IllegalArgumentException("unknown argument: " + a);
                 }
             }
         }
         if (folder == null || version == null) {
-            throw new IllegalArgumentException("нужны: <папка_новой_игры> и --version vX.Y.Z");
+            throw new IllegalArgumentException("required: <new_game_folder> and --version vX.Y.Z");
         }
         if (!version.matches("^v[0-9A-Za-z][0-9A-Za-z._-]*$")) {
-            throw new IllegalArgumentException("некорректный id версии: " + version
-                    + " (ожидается вида v0.2.0)");
+            throw new IllegalArgumentException("invalid version id: " + version
+                    + " (expected like v0.2.0)");
         }
 
         Path gameRoot = Path.of(folder).toAbsolutePath().normalize();
         if (!Files.isDirectory(gameRoot)) {
-            throw new IllegalArgumentException("Папка не найдена: " + gameRoot);
+            throw new IllegalArgumentException("Folder not found: " + gameRoot);
         }
 
-        // манифест: существующий или новый
+        // manifest: existing or new
         Path manifestFile = Path.of(manifestPath);
         Map<String, Object> manifest;
         List<Map<String, Object>> versions;
@@ -89,7 +89,7 @@ final class BuildRelease {
             versions = v;
             for (Map<String, Object> old : versions) {
                 if (version.equals(old.get("id"))) {
-                    throw new IllegalArgumentException("Версия " + version + " уже есть в манифесте");
+                    throw new IllegalArgumentException("Version " + version + " already exists in the manifest");
                 }
             }
         } else {
@@ -101,7 +101,7 @@ final class BuildRelease {
 
         Map<String, Object> newFiles = Snapshot.scan(gameRoot);
 
-        // чейнджлог
+        // changelog
         List<String> changelog = new ArrayList<>();
         if (changelogFile != null) {
             for (String line : Files.readAllLines(Path.of(changelogFile), StandardCharsets.UTF_8)) {
@@ -109,9 +109,9 @@ final class BuildRelease {
                 if (!t.isEmpty()) changelog.add(t);
             }
         }
-        if (changelog.isEmpty()) changelog.add("Обновление");
+        if (changelog.isEmpty()) changelog.add("Update");
 
-        // update-пакеты для старых версий
+        // update packages for old versions
         Path out = Path.of(outDir);
         Files.createDirectories(out);
         List<Map<String, Object>> oldVersions = recent > 0 && recent < versions.size()
@@ -134,7 +134,7 @@ final class BuildRelease {
             updatesFrom.put(oldId, upd);
         }
 
-        // запись новой версии
+        // new version entry
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("id", version);
         entry.put("date", Instant.now().toString());
@@ -149,20 +149,20 @@ final class BuildRelease {
         manifest.put("latest", version);
         Files.writeString(manifestFile, Json.write(manifest), StandardCharsets.UTF_8);
 
-        // сводка
-        System.out.println("Релиз " + version + " собран:");
-        System.out.println("  файлов в игре: " + newFiles.size());
+        // summary
+        System.out.println("Release " + version + " built:");
+        System.out.println("  game files: " + newFiles.size());
         for (Map.Entry<String, Object> u : updatesFrom.entrySet()) {
             @SuppressWarnings("unchecked")
             Map<String, Object> m = (Map<String, Object>) u.getValue();
             System.out.println("  " + m.get("file") + " ("
-                    + human(((Number) m.get("size")).longValue()) + ") для " + u.getKey());
+                    + human(((Number) m.get("size")).longValue()) + ") from " + u.getKey());
         }
-        System.out.println("  манифест: " + manifestFile + " (latest=" + version + ")");
-        System.out.println("  пакеты в: " + out.toAbsolutePath());
+        System.out.println("  manifest: " + manifestFile + " (latest=" + version + ")");
+        System.out.println("  packages in: " + out.toAbsolutePath());
     }
 
-    /** Zip: изменённые + добавленные файлы + .rol-removed.txt со списком удалённых. */
+    /** Zip: changed + added files + .rol-removed.txt with the deletion list. */
     private static byte[] buildUpdateZip(Path gameRoot,
                                          Map<String, Object> newFiles,
                                          Map<String, Object> oldFiles)
@@ -210,7 +210,7 @@ final class BuildRelease {
             throws IOException {
         Path p = gameRoot.resolve(relPath);
         if (!Files.isRegularFile(p)) {
-            throw new IllegalArgumentException("Файл из списка не найден: " + relPath);
+            throw new IllegalArgumentException("File from the list not found: " + relPath);
         }
         zip.putNextEntry(new ZipEntry(relPath));
         Files.copy(p, zip);
@@ -225,7 +225,7 @@ final class BuildRelease {
             if (name.isEmpty()) continue;
             Path p = Path.of(name);
             if (!Files.isRegularFile(p)) {
-                throw new IllegalArgumentException("Том базы не найден: " + name);
+                throw new IllegalArgumentException("Base volume not found: " + name);
             }
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("file", p.getFileName().toString());
@@ -234,7 +234,7 @@ final class BuildRelease {
             parts.add(m);
         }
         if (parts.isEmpty()) {
-            throw new IllegalArgumentException("--base передан, но тома не найдены");
+            throw new IllegalArgumentException("--base given but no volumes found");
         }
         Map<String, Object> base = new LinkedHashMap<>();
         base.put("parts", parts);
@@ -255,9 +255,9 @@ final class BuildRelease {
     }
 
     private static String human(long bytes) {
-        if (bytes < 1024) return bytes + " Б";
-        if (bytes < 1024 * 1024) return String.format("%.1f КБ", bytes / 1024.0);
-        if (bytes < 1024L * 1024 * 1024) return String.format("%.1f МБ", bytes / (1024.0 * 1024));
-        return String.format("%.2f ГБ", bytes / (1024.0 * 1024 * 1024));
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
     }
 }

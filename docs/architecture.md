@@ -1,114 +1,115 @@
-# Архитектура системы обновлений
+# Update system architecture
 
-## Принцип
+## Principle
 
-Сервер хранит три вещи:
+The server stores three things:
 
-1. **Базовый архив** — полная копия игры, нарезанная на тома 7z
-   (лимит GitHub: 2 ГБ на файл; наша игра ~2.9 ГБ → два тома по ~1.5 ГБ).
-   Нужен только для первой установки, обновляется редко.
-2. **Update-пакеты** — `update-vA-vB.zip` со *только изменёнными* файлами
-   (внутри сохраняется структура папок игры). Маленькие.
-3. **Манифест** — `releases/manifest.json` в репозитории. Описывает все
-   версии: дата, чейнджлог, базовые тома, цепочки update-пакетов
-   и SHA-256 всех файлов установленной игры для проверки целостности.
+1. **Base archive** — a full copy of the game, split into 7z volumes
+   (GitHub limit: 2 GB per file; our game is ~2.9 GB → two volumes of ~1.5 GB).
+   Needed only for the first install, updated rarely.
+2. **Update packages** — `update-vA-vB.zip` containing *only the changed*
+   files (the folder structure of the game is preserved inside). Small.
+3. **Manifest** — `releases/manifest.json` in the repository. Describes all
+   versions: date, changelog, base volumes, update-package chains and SHA-256
+   of every installed game file for integrity checks.
 
-Клиент (лаунчер) сам решает, что качать:
+The client (launcher) decides on its own what to download:
 
 ```
-манифест.json (raw.githubusercontent.com, без лимитов API)
+manifest.json (raw.githubusercontent.com, no API limits)
    │
-   ├─ игры нет вообще      → качать базовые тома, распаковать
-   ├─ игра стоит, v0.1     → качать update-v0.1-v0.2.zip
-   ├─ игра стоит, v0.0.9   → качать цепочку: v0.0.9→v0.1.0→v0.1.1→v0.1.2
-   └─ версия совпадает     → ничего не качать
+   ├─ no game installed     → download base volumes, extract
+   ├─ game is v0.1.0        → download update-v0.1.0-v0.2.0.zip
+   ├─ game is v0.0.9        → download update-v0.0.9-v0.1.2.zip (single hop)
+   └─ version matches       → download nothing
 ```
 
-После применения пакетов лаунчер сверяет SHA-256 каждого файла
-с манифестом — битые/неполные файлы докачиваются.
+After applying a package the launcher verifies SHA-256 of every file against
+the manifest — corrupted/incomplete files are re-downloaded.
 
-## Почему не GitHub API
+## Why not the GitHub API
 
-У GitHub API жёсткий лимит: 60 запросов в час без токена — лаунчер
-у нескольких игроков быстро упрётся. `manifest.json` лежит в репозитории
-и отдаётся по raw-ссылке (`raw.githubusercontent.com`) без таких лимитов,
-кэш CDN — секунды. Файлы релизов (`*.7z`, `*.zip`) тоже отдаются через
-`objects.githubusercontent.com` без практических ограничений на скачивание.
+The GitHub API has a hard limit: 60 requests per hour without a token —
+launchers of several players would hit it quickly. `manifest.json` lives in
+the repository and is served via a raw link (`raw.githubusercontent.com`)
+without such limits, CDN-cached. Release files (`*.7z`, `*.zip`) are also
+served via `objects.githubusercontent.com` without practical download caps.
 
-## Переключение версий
+## Version switching
 
-Лаунчер хранит:
+The launcher stores:
 
 ```
-<папка данных лаунчера>/
-├── base/                  # распакованный базовый архив (только для чтения)
-├── cache/                 # скачанные update-пакеты
-└── versions/              # собранные версии (жёсткие ссылки/копии файлов)
+<launcher data folder>/
+├── base/                  # extracted base archive (read-only)
+├── cache/                 # downloaded update packages
+└── versions/              # built versions (hard links / file copies)
 ```
 
-Переключение = собрать целевую версию из `base/` цепочкой пакетов
-в новую папку `versions/`. Для последних 2–3 версий это секунды
-(пакеты маленькие). Периодически (раз в ~10 версий) делаем «ребейз»:
-выкладываем новый базовый архив, цепочки становятся короткими.
+Switching = building the target version from `base/` by applying packages
+into a new `versions/` folder. For the last 2-3 versions it takes seconds
+(packages are small). Periodically (about every 10 versions) we do a
+"rebase": publish a new base archive, keeping the chains short.
 
-## Формат манифеста
+## Manifest format
 
-Пример схемы лежит в `releases/manifest.json`. Ключевые поля:
+An example schema lives in `releases/manifest.json`. Key fields:
 
-- `schema_version` — версия схемы (для совместимости лаунчера)
-- `latest` — id последней версии
+- `schema_version` — schema version (launcher compatibility)
+- `latest` — id of the latest version
 - `versions[]`:
   - `id`, `date`, `changelog`
-  - `base.parts[]` — тома базового архива этой версии (файл, размер, SHA-256)
-  - `updates_from` — карта «из какой версии какой пакет качать»
-    (пакет: файл, размер, SHA-256)
-  - `files` — SHA-256 всех файлов установки (для проверки целостности)
+  - `base.parts[]` — base archive volumes of this version (file, size, SHA-256)
+  - `updates_from` — map "from which version to download which package"
+    (package: file, size, SHA-256)
+  - `files` — SHA-256 of every installed file (integrity checks)
 
-Update-пакет самодостаточен: внутри zip лежат изменённые/добавленные
-файлы (структура папок сохраняется) и служебный `.rol-removed.txt` —
-список файлов на удаление, по одному на строку. Алгоритм лаунчера:
-распаковать пакет → удалить файлы из списка → сверить SHA-256
-всех файлов с целевой версией манифеста.
+An update package is self-contained: the zip contains changed/added files
+(the folder structure is preserved) and a special `.rol-removed.txt` — the
+list of files to delete, one per line. Launcher algorithm: extract the
+package → delete files from the list → verify SHA-256 of all files against
+the target version in the manifest.
 
-Манифест и пакеты формирует `devkit build-release`, руками манифест
-править не нужно.
+The manifest and packages are produced by `devkit build-release`; the
+manifest should never be edited by hand.
 
-## Лаунчер (JavaFX)
+## Launcher (JavaFX)
 
-Стек: Java 21 LTS, JavaFX, Maven (`javafx-maven-plugin`).
-Проект — Maven multi-module: модуль `devkit` (CLI-инструменты разработчика:
-snapshot/diff/сборка релизов) и модуль `launcher` (само приложение).
-Всё на Java — Python-скрипт перепаковки `.big` остаётся временным
-и будет портирован в `devkit repack`.
+Stack: Java 21 LTS, JavaFX, Maven (`javafx-maven-plugin`).
+The project is a Maven multi-module build: module `devkit` (developer CLI
+tools: snapshot/diff/release builds) and module `launcher` (the app itself).
+Everything is Java — the Python `.big` repacker stays as a legacy reference
+only.
 
-### Распространение лаунчера
+### Launcher distribution
 
-Лаунчер — это обычное Java-приложение, собранное в нативный Windows-инсталлятор:
+The launcher is a regular Java app packaged into a native Windows installer:
 
-1. **jlink** собирает урезанную JRE из модулей, которые реально нужны
-   приложению (~40–50 МБ вместо полных ~300 МБ).
-2. **jpackage** упаковывает приложение + JRE в `.msi`/`.exe`-установщик
-   (или в папку с `RoLauncher.exe` для портативной версии).
-   Игроку Java ставить не нужно.
+1. **jlink** builds a trimmed JRE from only the modules the app actually
+   needs (~40-50 MB instead of ~300 MB full).
+2. **jpackage** packs the app + JRE into an `.msi`/`.exe` installer
+   (or a folder with `RoLauncher.exe` for a portable version).
+   Players do not need Java installed.
 
-Собранный установщик выкладывается в те же GitHub Releases
-(`RoLauncher-setup-0.1.0.exe`) — игроки скачивают его вручную один раз.
+The built installer is published to the same GitHub Releases
+(`RoLauncher-setup-0.1.0.exe`) — players download it manually once.
 
-### Обновление самого лаунчера
+### Launcher self-update
 
-Манифест содержит и версию лаунчера: `launcher_version`. При старте
-лаунчер сравнивает её с последней из манифеста и, если вышла новая,
-скачивает свежий установщик (или jar) и перезапускает себя после
-обновления. Классическая схема self-update; для надёжности на первом
-шаге можно обойтись простым «скачать и запустить установщик».
+The manifest also carries the launcher version: `launcher_version`. On
+startup the launcher compares it with the latest one from the manifest and,
+if a new version exists, downloads the fresh installer (or jar) and
+restarts itself after the update. Classic self-update scheme; as a first
+step a simple "download and run the installer" flow is fine.
 
-Экраны:
-1. **Главный**: установленная версия, доступное обновление (чек при старте),
-   кнопки «Играть», «Обновить», «Выбрать версию».
-2. **Установка**: выбор папки (или «указать существующую игру»),
-   прогресс скачивания томов.
-3. **Версии**: список из манифеста, установка/переключение любой версии.
+## Update package application (launcher side)
 
-Поток обновления: скачать пакет → проверить SHA-256 файлов манифеста →
-распаковать поверх → пометить установленную версию.
-Запуск игры: `ProcessBuilder` → `legends.exe` с рабочей папкой игры.
+```
+1. Read target version from manifest.json
+2. Download update package for the installed version
+3. Verify package SHA-256 from updates_from entry
+4. Extract package over the game folder
+5. Delete files listed in .rol-removed.txt
+6. Verify SHA-256 of every file against the target version's files map
+7. Record the new installed version locally
+```

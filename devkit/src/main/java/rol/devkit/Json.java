@@ -6,30 +6,30 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Минимальный JSON (только объекты, строки, числа, null — без массивов).
- * Достаточно для формата снимков и манифеста. Без внешних зависимостей.
+ * Minimal JSON (objects, strings, numbers, null, arrays — enough for the
+ * snapshot and manifest formats). No external dependencies.
  */
 final class Json {
 
     private Json() {}
 
-    /** Разбор JSON-объекта в Map&lt;String,Object&gt; (значения: Map/List/String/Long/Double/null). */
+    /** Parse a JSON object into Map&lt;String,Object&gt; (values: Map/List/String/Long/Double/null). */
     static Map<String, Object> parse(String text) {
         Parser p = new Parser(text);
         Object v = p.parseValue();
         p.skipWs();
         if (!p.atEnd()) {
-            throw new IllegalArgumentException("Лишние данные после JSON на позиции " + p.pos);
+            throw new IllegalArgumentException("Trailing data after JSON at position " + p.pos);
         }
         if (!(v instanceof Map<?, ?> m)) {
-            throw new IllegalArgumentException("Корень JSON должен быть объектом");
+            throw new IllegalArgumentException("JSON root must be an object");
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> res = (Map<String, Object>) m;
         return res;
     }
 
-    /** Сериализация Map в JSON (значения: Map/List/String/Long/Double/null). */
+    /** Serialize a Map to JSON (values: Map/List/String/Long/Double/null). */
     static String write(Map<String, ?> map) {
         StringBuilder sb = new StringBuilder();
         writeValue(sb, map, 0);
@@ -123,7 +123,7 @@ final class Json {
                 char c = s.charAt(pos);
                 if (c == ',') { pos++; continue; }
                 if (c == ']') { pos++; return list; }
-                throw err("ожидалось ',' или ']'");
+                throw err("expected ',' or ']'");
             }
         }
 
@@ -136,19 +136,19 @@ final class Json {
                 skipWs();
                 String key = parseString();
                 skipWs();
-                if (s.charAt(pos) != ':') throw err("ожидалось ':'");
+                if (s.charAt(pos) != ':') throw err("expected ':'");
                 pos++;
                 map.put(key, parseValue());
                 skipWs();
                 char c = s.charAt(pos);
                 if (c == ',') { pos++; continue; }
                 if (c == '}') { pos++; return map; }
-                throw err("ожидалось ',' или '}'");
+                throw err("expected ',' or '}'");
             }
         }
 
         String parseString() {
-            if (s.charAt(pos) != '"') throw err("ожидалась строка");
+            if (s.charAt(pos) != '"') throw err("expected string");
             pos++;
             StringBuilder sb = new StringBuilder();
             while (true) {
@@ -163,7 +163,7 @@ final class Json {
                         case 'r' -> sb.append('\r');
                         case 't' -> sb.append('\t');
                         case 'u' -> sb.append((char) Integer.parseInt(s.substring(pos, pos + 4), 16));
-                        default -> throw err("неизвестный escape \\" + e);
+                        default -> throw err("unknown escape \\" + e);
                     }
                     if (e == 'u') pos += 4;
                 } else {
@@ -173,7 +173,7 @@ final class Json {
         }
 
         Object parseLiteral(String lit, Object value) {
-            if (!s.startsWith(lit, pos)) throw err("ожидалось " + lit);
+            if (!s.startsWith(lit, pos)) throw err("expected " + lit);
             pos += lit.length();
             return value;
         }
@@ -189,7 +189,7 @@ final class Json {
         }
 
         IllegalArgumentException err(String msg) {
-            return new IllegalArgumentException(msg + " (позиция " + pos + ")");
+            return new IllegalArgumentException(msg + " (position " + pos + ")");
         }
     }
 }

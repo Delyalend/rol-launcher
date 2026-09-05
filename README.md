@@ -1,89 +1,89 @@
-# RoLauncher — лаунчер и система обновлений для Rise of Legends
+# RoLauncher — launcher and update system for Rise of Legends
 
-Проект для поддержки и распространения модифицированной версии
+Project for maintaining and distributing a modified version of
 Rise of Nations: Rise of Legends (2006, Big Huge Games / Microsoft).
 
-## Зачем это
+## Why
 
-1. **Раздача игры и обновлений.** Лаунчер позволяет скачать актуальную версию
-   игры, а при выходе обновления — докачать только изменённые файлы
-   (сотни КБ вместо 3 ГБ).
-2. **Уведомления о новых версиях.** Лаунчер проверяет манифест при запуске
-   и сообщает игроку о доступном обновлении.
-3. **Переключение между версиями.** Хранится базовый архив + цепочка
-   update-пакетов; любая версия собирается из базы применением пакетов.
-4. **Порядок в разработке.** Исходники мода, инструменты и манифест версий
-   лежат в git с полной историей изменений.
+1. **Game distribution and updates.** The launcher downloads the current game
+   version; when an update is released, it downloads only the changed files
+   (hundreds of KB instead of 3 GB).
+2. **Update notifications.** The launcher checks the manifest on startup and
+   tells the player when an update is available.
+3. **Version switching.** The base archive plus a chain of update packages is
+   stored; any version can be rebuilt from the base by applying packages.
+4. **Order in development.** Mod sources, tools and the version manifest live
+   in git with full change history.
 
-## Как устроено
+## How it works
 
 ```
-[разработчик]                 [GitHub]                     [игрок]
-правит мод в mod/
+[developer]                  [GitHub]                     [player]
+edits mod in mod/
    │
-   ├─ tools/repack_big.py ─ перепаковка .big архивов игры
-   ├─ tools/snapshot.py    ─ снимок файлов + SHA-256 (в планах)
-   ├─ tools/build_release.py ─ сборка релиза и update-пакета (в планах)
+   ├─ devkit repack ─ rebuilds .big archives of the game
+   ├─ devkit build-release ─ builds update packages + manifest
    │
    ▼
 GitHub Releases:
-   • base-vX.Y.Z.7z.001/.002 — полная игра томами (для первой установки)
-   • update-vA-vB.zip        — только изменённые файлы
-   • releases/manifest.json  — манифест версий (лежит в репозитории)
+   • base-vX.Y.Z.7z.001/.002 — full game in volumes (first install)
+   • update-vA-vB.zip        — changed files only
+   • releases/manifest.json  — version manifest (stored in the repo)
    │
    ▼
-Лаунчер (JavaFX):
-   проверяет manifest.json → сравнивает с установленной версией
-   → докачивает update-пакеты → проверяет SHA-256 → применяет
-   → запускает legends.exe
+Launcher (JavaFX):
+   checks manifest.json → compares with installed version
+   → downloads update packages → verifies SHA-256 → applies
+   → launches legends.exe
 ```
 
-Серверной части как таковой нет: всё статическое — GitHub Releases
-для файлов и raw-ссылка на `manifest.json` из репозитория
-(без GitHub API, у которого лимит 60 запросов/час).
+There is no server side: everything is static — GitHub Releases for files
+and a raw link to `manifest.json` from the repository
+(not the GitHub API, which has a 60 requests/hour limit).
 
-## Структура репозитория
+## Repository structure
 
-| Папка | Что внутри |
+| Folder | Contents |
 |---|---|
-| `mod/` | Исходники мода: XML правил, нации, скрипты `.bhs`, карты |
-| `devkit/` | Java-модуль: CLI-инструменты разработчика (снимки, diff, сборка релизов) |
-| `launcher/` | Java-модуль: лаунчер на JavaFX |
-| `tools/` | Вспомогательные скрипты (Python-перепаковка `.big` до порта в Java) |
-| `releases/` | `manifest.json` — манифест версий (источник правды для лаунчера) |
-| `docs/` | Архитектура, гайд по выпуску релизов |
+| `mod/` | Mod sources: rule XMLs, nations, `.bhs` scripts, maps |
+| `devkit/` | Java module: developer CLI tools (snapshots, diff, release builds) |
+| `launcher/` | Java module: JavaFX launcher |
+| `tools/` | Auxiliary scripts (Python `.big` repacker, legacy) |
+| `releases/` | `manifest.json` — version manifest (source of truth for the launcher) |
+| `docs/` | Architecture, release guide |
 
-Проект — Maven multi-module (`devkit` + `launcher`), везде Java 21.
-Полная игра (2.9 ГБ) и готовые `.big`-архивы **в git не кладутся** —
-они живут в GitHub Releases как артефакты.
+The project is a Maven multi-module build (`devkit` + `launcher`), Java 21
+everywhere. The full game (2.9 GB) and built `.big` archives are **not**
+stored in git — they live in GitHub Releases as artifacts.
 
-## Дорожная карта
+## Roadmap
 
-- [x] Структура проекта и документация
-- [x] Maven multi-module: `devkit` (CLI) + `launcher` (JavaFX-скелет)
-- [x] `devkit snapshot` — снимок папки игры (файлы + SHA-256)
-- [x] `devkit diff` — сравнение двух снимков (изменённые/добавленные/удалённые)
-- [x] Перепаковка `.big`-архивов в Java (`devkit repack`, порт из Python)
-- [x] `devkit build-release` — update-пакеты от каждой версии + обновление манифеста
-- [ ] Лаунчер: установка, обновление, выбор версии, запуск игры
-- [ ] Выкладка первого релиза в GitHub Releases
+- [x] Project structure and documentation
+- [x] Maven multi-module: `devkit` (CLI) + `launcher` (JavaFX skeleton)
+- [x] `devkit snapshot` — game folder snapshot (files + SHA-256)
+- [x] `devkit diff` — compare two snapshots (changed/added/removed)
+- [x] `.big` archive repacking in Java (`devkit repack`, ported from Python)
+- [x] `devkit build-release` — update packages for every version + manifest update
+- [ ] Launcher: install, update, version selection, game launch
+- [ ] First release published to GitHub Releases
 
-## Сборка
+## Build
 
-Требуется JDK 21 и Maven (или IDE с поддержкой Maven, напр. IntelliJ IDEA).
+Requires JDK 21 and Maven (or an IDE with Maven support, e.g. IntelliJ IDEA).
 
 ```
-mvn -q package                     # собрать оба модуля
-java -jar devkit/target/devkit-*.jar snapshot "C:\путь\к\игре"
+mvn -q package                     # build both modules
+java -jar devkit/target/devkit-*.jar snapshot "C:\path\to\game"
 java -jar devkit/target/devkit-*.jar diff old.json new.json
-java -jar devkit/target/devkit-*.jar repack "C:\игра_с_модом" "C:\эталонная_игра"
-java -jar devkit/target/devkit-*.jar build-release "C:\путь\к\игре" --version v0.2.0
+java -jar devkit/target/devkit-*.jar repack "C:\modded_game" "C:\pristine_game"
+java -jar devkit/target/devkit-*.jar build-release "C:\path\to\game" --version v0.2.0
 ```
 
-`devkit` собирается и без Maven: `javac -d out devkit/src/main/java/rol/devkit/*.java`
+`devkit` builds without Maven too:
+`javac -d out devkit/src/main/java/rol/devkit/*.java`
 
-## Соглашения
+## Conventions
 
-- Версии: `vX.Y.Z` (semver), ветки: `main` (стабильная) и `dev` (эксперименты)
-- Изменённые файлы между версиями описывает только `releases/manifest.json`
-- Базовый архив игры не урезаем — это полная копия оригинальной игры
+- Versions: `vX.Y.Z` (semver), branches: `main` (stable) and `dev` (experiments)
+- Files changed between versions are described only by `releases/manifest.json`
+- The base game archive is never trimmed — it is a full copy of the original game

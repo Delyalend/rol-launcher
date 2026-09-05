@@ -15,8 +15,8 @@ import java.util.TreeMap;
 import java.util.stream.Stream;
 
 /**
- * Снимок папки: относительные пути (с прямыми слешами), размеры и SHA-256.
- * Формат снимка:
+ * Folder snapshot: relative paths (forward slashes), sizes and SHA-256.
+ * Snapshot format:
  * {
  *   "schema": 1,
  *   "created": "2026-09-06T...",
@@ -31,7 +31,7 @@ final class Snapshot {
     static void save(String folder, String outFile) throws IOException, NoSuchAlgorithmException {
         Path root = Path.of(folder).toAbsolutePath().normalize();
         if (!Files.isDirectory(root)) {
-            throw new IllegalArgumentException("Папка не найдена: " + root);
+            throw new IllegalArgumentException("Folder not found: " + root);
         }
         Map<String, Object> rootObj = new LinkedHashMap<>();
         rootObj.put("schema", 1L);
@@ -42,8 +42,8 @@ final class Snapshot {
     }
 
     /**
-     * Скан папки: относительный путь (прямые слеши) -> {s: размер, h: SHA-256}.
-     * Пути отсортированы, результат детерминирован.
+     * Scan a folder: relative path (forward slashes) -> {s: size, h: SHA-256}.
+     * Paths are sorted, the result is deterministic.
      */
     static Map<String, Object> scan(Path root) throws IOException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -60,7 +60,7 @@ final class Snapshot {
         return files;
     }
 
-    /** Сравнение двух снимков: возвращает человекочитаемый отчёт. */
+    /** Compare two snapshots: returns a human-readable report. */
     static List<String> diff(String oldFile, String newFile) throws IOException {
         Map<String, Object> old = Json.parse(Files.readString(Path.of(oldFile), StandardCharsets.UTF_8));
         Map<String, Object> fresh = Json.parse(Files.readString(Path.of(newFile), StandardCharsets.UTF_8));
@@ -93,13 +93,13 @@ final class Snapshot {
         }
 
         List<String> report = new ArrayList<>();
-        report.add("Изменено: " + changed.size() + " файлов (" + human(changedBytes) + ")");
+        report.add("Changed: " + changed.size() + " files (" + human(changedBytes) + ")");
         changed.forEach(p -> report.add("  M " + p));
-        report.add("Добавлено: " + added.size() + " файлов (" + human(addedBytes) + ")");
+        report.add("Added: " + added.size() + " files (" + human(addedBytes) + ")");
         added.forEach(p -> report.add("  A " + p));
-        report.add("Удалено: " + removed.size() + " файлов");
+        report.add("Removed: " + removed.size() + " files");
         removed.forEach(p -> report.add("  D " + p));
-        report.add("Итого в update-пакет: " + human(changedBytes + addedBytes) + " (до сжатия)");
+        report.add("Total update package size: " + human(changedBytes + addedBytes) + " (uncompressed)");
         return report;
     }
 
@@ -124,9 +124,9 @@ final class Snapshot {
     }
 
     private static String human(long bytes) {
-        if (bytes < 1024) return bytes + " Б";
-        if (bytes < 1024 * 1024) return String.format("%.1f КБ", bytes / 1024.0);
-        if (bytes < 1024L * 1024 * 1024) return String.format("%.1f МБ", bytes / (1024.0 * 1024));
-        return String.format("%.2f ГБ", bytes / (1024.0 * 1024 * 1024));
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
     }
 }

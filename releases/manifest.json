@@ -6,7 +6,7 @@
       "id": "v0.1.0",
       "date": "2026-09-06T00:00:00Z",
       "changelog": [
-        "Первый релиз: базовая версия игры"
+        "First release: base game version"
       ],
       "base": {
         "parts": [
@@ -24,7 +24,7 @@
       "id": "v0.2.0",
       "date": "2026-09-06T00:00:00Z",
       "changelog": [
-        "Пример записи с update-пакетом"
+        "Example entry with an update package"
       ],
       "updates_from": {
         "v0.1.0": {

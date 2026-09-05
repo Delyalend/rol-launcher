@@ -7,20 +7,20 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 /**
- * Скелет лаунчера.
+ * Launcher skeleton.
  *
- * Дальше по плану (см. README.md и docs/architecture.md):
- *   ManifestClient — загрузка releases/manifest.json
- *   Downloader     — скачивание с прогрессом и докачкой
- *   Updater        — применение update-пакетов, проверка SHA-256
- *   VersionManager — установленные версии и переключение
- *   GameRunner     — запуск legends.exe
+ * Planned next (see README.md and docs/architecture.md):
+ *   ManifestClient — downloads releases/manifest.json
+ *   Downloader     — downloads with progress and resume
+ *   Updater        — applies update packages, verifies SHA-256
+ *   VersionManager — installed versions and switching
+ *   GameRunner     — launches legends.exe
  */
 public class App extends Application {
 
     @Override
     public void start(Stage stage) {
-        Label label = new Label("RoLauncher — скелет приложения");
+        Label label = new Label("RoLauncher — application skeleton");
         StackPane root = new StackPane(label);
         stage.setScene(new Scene(root, 480, 300));
         stage.setTitle("RoLauncher");

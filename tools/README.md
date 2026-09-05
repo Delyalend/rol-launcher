@@ -1,59 +1,27 @@
-# Инструменты
+# Tools
 
-Основные инструменты живут в Java-модуле `devkit/`: `snapshot`, `diff`,
-`repack`, `build-release`. Эта папка — только для легаси-скриптов.
+The main tools live in the Java `devkit/` module: `snapshot`, `diff`,
+`repack`, `build-release`. This folder is for legacy scripts only.
 
-| Файл | Назначение | Статус |
+| File | Purpose | Status |
 |---|---|---|
-| `repack_big.py` | Python-версия перепаковки `.big` | легаси: портирована в `devkit repack`, оставлена как эталон |
+| `repack_big.py` | Python version of `.big` repacking | legacy: ported to `devkit repack`, kept as reference |
 
-## Быстрый старт devkit (Java)
+## devkit quick start (Java)
 
 ```
-# без Maven:
+# without Maven:
 javac -d out devkit/src/main/java/rol/devkit/*.java
-java -cp out rol.devkit.Main snapshot "C:\путь\к\игре" snapshot-v0.2.0.json
+java -cp out rol.devkit.Main snapshot "C:\path\to\game" snapshot-v0.2.0.json
 java -cp out rol.devkit.Main diff snapshot-v0.1.0.json snapshot-v0.2.0.json
-java -cp out rol.devkit.Main repack "C:\игра_с_модом" "C:\эталонная_игра"
+java -cp out rol.devkit.Main repack "C:\modded_game" "C:\pristine_game"
 
-# с Maven:
+# with Maven:
 mvn -q package
-java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar snapshot "C:\путь\к\игре"
+java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar snapshot "C:\path\to\game"
 ```
 
-`repack` перезаписывает 3 копии `mod_data.big` в папке игры
-(`BIGS\`, `BIGS\patch8\`, `BIGS\patches\patch8\`), исходники кладёт
-в папку бэкапов (по умолчанию `_bigs_backup_original` рядом с игрой).
-Скомпилированные (bxml) записи не трогает.
-
-## repack_big.py
-
-Перепаковывает `mod_data.big` (3 копии: `BIGS\`, `BIGS\patch8\`,
-`BIGS\patches\patch8\`): заменяет текстовые записи архива файлами мода
-из папки `Data\` игры и добавляет отсутствующие файлы новыми
-текстовыми записями. Скомпилированные (bxml) записи не трогает.
-
-Зачем: в мультиплеере игра игнорирует распакованные файлы и берёт
-правила из архивов, поэтому мод должен быть вшит в `.big`.
-
-Запуск:
-
-```
-python tools/repack_big.py
-```
-
-Перед запуском отредактируй константы в начале файла:
-
-- `GAME_DIR` — модифицируемая копия игры (с распакованным модом в `Data\`);
-- `PRISTINE_DIR` — эталонная копия без мода (источник архивов).
-
-Бэкапы исходных архивов кладутся в `_bigs_backup_original\`.
-
-### Известные особенности формата
-
-- Игра сама перезаписывает `mod_data.big` при запуске (обновляет
-  служебные данные) — не пугайся, если хэш файла изменился после запуска.
-- В `multiplayer_data.big` есть одна запись, которая не распаковывается
-  zlib'ом — инструмент сохраняет такие записи как есть (passthrough).
-- Текст в скомпилированные (bxml) записи класть нельзя — игра падает
-  при старте. Это главное правило, из-за него был вылет в v1.
+`repack` overwrites the 3 copies of `mod_data.big` in the game folder
+(`BIGS\`, `BIGS\patch8\`, `BIGS\patches\patch8\`); originals are copied to
+the backup folder (by default `_bigs_backup_original` next to the game).
+Compiled (bxml) entries are never touched.

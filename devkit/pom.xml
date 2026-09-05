@@ -12,7 +12,7 @@
 
     <artifactId>devkit</artifactId>
     <name>RoL DevKit</name>
-    <description>CLI-инструменты разработчика: снимки, сравнение версий, сборка релизов</description>
+    <description>Developer CLI tools: snapshots, version comparison, release builds</description>
 
     <build>
         <plugins>

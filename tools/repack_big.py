@@ -1,31 +1,34 @@
 # -*- coding: utf-8 -*-
-"""Перепаковка .big архивов Rise of Legends: вшивание файлов мода в архив.
+"""Repacking of Rise of Legends .big archives: embedding mod files into the archive.
 
-Формат .big (WAR-BUILDER, Big Huge Games):
-    заголовок: u32 0x0B, u8 0x01, UTF-16 строка "WAR-BUILDER"
-    блок ссылок (обычно пустой) + блок записей:
-        u32 N, u32 N, u16 0, u8 0, затем N записей:
-        [u32 len][UTF-16 имя][u32 0][u32 0][u32 offset][u32 size][u32 0][u32 ts]
+LEGACY: this tool is ported to Java — use `devkit repack` instead.
+Kept as a reference implementation.
+
+.big format (WAR-BUILDER, Big Huge Games):
+    header: u32 0x0B, u8 0x01, UTF-16 string "WAR-BUILDER"
+    reference block (usually empty) + entry block:
+        u32 N, u32 N, u16 0, u8 0, then N entries:
+        [u32 len][UTF-16 name][u32 0][u32 0][u32 offset][u32 size][u32 0][u32 ts]
         [u32 len][UTF-16 ext][u16 0]
-    данные: в offset лежит [u32 zsize][zlib-поток] (иногда raw-deflate).
+    data: at offset there is [u32 zsize][zlib stream] (sometimes raw-deflate).
 
-ВАЖНО (выстрадано практикой):
-    В mod_data.big файлы правил лежат ДВАЖДЫ: скомпилированный (ext="bxml",
-    бинарный) и текстовый (ext="", начинается с "<"). Скомпилированные
-    записи трогать НЕЛЬЗЯ — текст в них валит игру при старте.
-    Поэтому мод вшивается ТОЛЬКО в текстовые записи, а отсутствующие
-    файлы добавляются новыми текстовыми записями.
+IMPORTANT (learned the hard way):
+    In mod_data.big rule files exist TWICE: compiled (ext="bxml", binary)
+    and text (ext="", starts with "<"). Compiled entries must NOT be
+    touched — text inside them crashes the game on startup.
+    Therefore the mod is injected ONLY into text entries, and missing
+    files are added as new text entries.
 
-Использование: задай пути GAME_DIR и PRISTINE_DIR внизу и запусти
+Usage: set GAME_DIR and PRISTINE_DIR at the bottom, then run
     python repack_big.py
-Выход: mod_data.big перезаписывается в GAME_DIR (3 копии: BIGS,
-BIGS\\patch8, BIGS\\patches\\patch8), бэкапы — в BACKUP_DIR.
+Output: mod_data.big is rewritten in GAME_DIR (3 copies: BIGS,
+BIGS\\patch8, BIGS\\patches\\patch8), backups go to BACKUP_DIR.
 """
 import struct, zlib, os, shutil
 
-# Путь к модифицируемой копии игры (с распакованным модом в Data\)
+# Path to the modified game copy (with the extracted mod in Data\)
 GAME_DIR = r'C:\root\backup\modded\Rise Of Legends'
-# Путь к эталонной (оригинальной) копии игры для исходников архивов
+# Path to the pristine (original) game copy used as the archive source
 PRISTINE_DIR = r'C:\root\Rise Of Legends'
 BACKUP_DIR = os.path.join(os.path.dirname(GAME_DIR), '_bigs_backup_original')
 
@@ -52,7 +55,7 @@ def inflate(raw):
 
 
 def parse_big(b):
-    """Разбор .big: возвращает (смещение блока записей, список записей)."""
+    """Parse a .big: returns (entry block offset, entry list)."""
     for start in range(0x14, 0x800):
         if start + 8 > len(b):
             continue
@@ -92,13 +95,13 @@ def parse_big(b):
 
 
 def norm(name):
-    """Нормализация имени записи для сравнения с путями на диске."""
+    """Normalize an entry name for comparison with on-disk paths."""
     return name.lower().replace(BS, '/').strip('./')
 
 
 def build_big(header, entries):
-    """Сборка .big: заголовок копируется как есть, блок записей строится
-    заново; записи с keep_raw сохраняют исходные сжатые байты."""
+    """Build a .big: the header is copied as-is, the entry block is rebuilt;
+    entries with keep_raw preserve their original compressed bytes."""
     out = bytearray(header)
     out += struct.pack('<IIHB', len(entries), len(entries), 0, 0)
     table_parts, data_parts = [], []
@@ -133,7 +136,7 @@ def build_big(header, entries):
 
 
 def loose_files(root, exts):
-    """Все файлы с нужными расширениями под root: norm-имя -> путь."""
+    """All files with the given extensions under root: norm-name -> path."""
     res = {}
     for dirpath, _, files in os.walk(root):
         for f in files:
@@ -147,7 +150,7 @@ def loose_files(root, exts):
 def main():
     os.makedirs(BACKUP_DIR, exist_ok=True)
 
-    # Какие распакованные файлы мода вшиваем в mod_data.big
+    # which extracted mod files get embedded into mod_data.big
     mod_files = {}
     for k, p in loose_files(os.path.join(GAME_DIR, 'Data', 'tribes'), {'.xml'}).items():
         mod_files[k] = p
@@ -159,7 +162,7 @@ def main():
             continue
         if os.path.splitext(f)[1].lower() != '.xml':
             continue
-        # эти файлы живут в multiplayer_data.big, а схема вообще не нужна
+        # these files live in multiplayer_data.big, and the schema is not needed
         if f in ('how_to_play.xml', 'resourcerules_strings.xml', 'unitrules.xsd'):
             continue
         mod_files[norm('data/' + f)] = full
@@ -173,12 +176,12 @@ def main():
         src = os.path.join(PRISTINE_DIR, sub, name)
         dst = os.path.join(GAME_DIR, sub, name)
         if not os.path.exists(src):
-            print('SKIP (нет исходника):', src)
+            print('SKIP (no source):', src)
             continue
         data = open(src, 'rb').read()
         start, entries = parse_big(data)
         if start is None:
-            print('ERROR: не удалось разобрать', src)
+            print('ERROR: cannot parse', src)
             continue
         shutil.copy2(src, os.path.join(BACKUP_DIR, 'orig_' + os.path.basename(src)))
 
@@ -187,7 +190,7 @@ def main():
             p = e['payload']
             is_bxml = p is not None and p[:4] == b'\x01\x00\x00\x00'
             if is_bxml:
-                # скомпилированную запись НЕ трогаем
+                # never touch the compiled entry
                 e['keep_raw'] = True
                 n_bxml += 1
                 continue
@@ -218,7 +221,7 @@ def main():
             fh.write(out)
         _, check = parse_big(out)
         ok = check is not None and len(check) == len(entries)
-        print('%s: записей=%d (bxml нетронутых=%d, текстовых заменено=%d, новых=%d) проверка=%s'
+        print('%s: entries=%d (bxml untouched=%d, text replaced=%d, new=%d) verify=%s'
               % (dst, len(entries), n_bxml, n_text, len(mod_files) - len(used),
                  'OK' if ok else 'FAIL'))
 

@@ -1,56 +1,56 @@
-# Лаунчер (JavaFX)
+# Launcher (JavaFX)
 
-Клиентское приложение для установки, обновления и запуска игры.
+Client application for installing, updating and launching the game.
 
-## Стек
+## Stack
 
-- Java 17+ (лучше 21 LTS), JavaFX
-- Сборка: Maven + `javafx-maven-plugin`
-- Упаковка под Windows: `jlink` + `jpackage` → нативный `.exe`
-  с урезанной JRE (игрокам Java ставить не нужно)
+- Java 21 LTS, JavaFX
+- Build: Maven + `javafx-maven-plugin`
+- Windows packaging: `jlink` + `jpackage` → native `.exe`
+  with a trimmed JRE (players do not need Java installed)
 
-## Функции (по экранам)
+## Features (by screen)
 
-1. **Главный экран**
-   - установленная версия и путь к игре;
-   - проверка `manifest.json` при запуске → плашка «Доступно обновление vX.Y.Z»;
-   - кнопки: «Играть», «Обновить», «Выбрать версию», «Настройки».
-2. **Установка**
-   - «Скачать игру» (качает тома base-архива и распаковывает);
-   - «Указать существующую папку игры» (привязка без скачивания);
-   - прогресс скачивания, возобновление после обрыва.
-3. **Версии**
-   - список версий из манифеста с чейнджлогами;
-   - переключение: сборка выбранной версии из base + цепочки update-пакетов.
+1. **Main screen**
+   - installed version and game path;
+   - `manifest.json` check on startup → "Update vX.Y.Z available" banner;
+   - buttons: "Play", "Update", "Select version", "Settings".
+2. **Install**
+   - "Download game" (downloads base archive volumes and extracts);
+   - "Point to existing game folder" (attach without downloading);
+   - download progress, resume after interruption.
+3. **Versions**
+   - list of versions from the manifest with changelogs;
+   - switching: build the selected version from base + update packages.
 
-## Поток обновления
+## Update flow
 
 ```
 manifest.json (raw.githubusercontent.com)
-  → сравнить установленную версию с latest
-  → скачать update-пакеты (цепочкой, если пропущены версии)
-  → сверить SHA-256 файлов по манифесту
-  → распаковать поверх установки
-  → записать новую версию в локальное состояние
+  → compare installed version with latest
+  → download update packages (single hop, no chains)
+  → verify SHA-256 of files against the manifest
+  → extract over the installation
+  → record the new version in the local state
 ```
 
-## Внутреннее устройство (план модулей)
+## Planned module layout
 
 ```
 launcher/
 ├── src/main/java/rol/launcher/
-│   ├── App.java                 # точка входа JavaFX
-│   ├── ManifestClient.java      # загрузка и парсинг manifest.json
-│   ├── Downloader.java          # скачивание с прогрессом и resume
-│   ├── Updater.java             # применение update-пакетов, проверка хэшей
-│   ├── VersionManager.java      # установленные версии, переключение
-│   └── GameRunner.java          # запуск legends.exe
-└── src/main/resources/          # FXML, стили, иконки
+│   ├── App.java                 # JavaFX entry point
+│   ├── ManifestClient.java      # manifest.json download and parsing
+│   ├── Downloader.java          # downloads with progress and resume
+│   ├── Updater.java             # update package application, hash checks
+│   ├── VersionManager.java      # installed versions, switching
+│   └── GameRunner.java          # legends.exe launch
+└── src/main/resources/          # FXML, styles, icons
 ```
 
-Состояние лаунчера (установленная версия, пути) хранится локально
-в `%APPDATA%\RoLauncher\`.
+Launcher state (installed version, paths) is stored locally in
+`%APPDATA%\RoLauncher\`.
 
-## Статус
+## Status
 
-Проектирование. Подробности — в `docs/architecture.md`.
+Design phase. Details in `docs/architecture.md`.

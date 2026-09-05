@@ -1,39 +1,39 @@
-# Гайд по выпуску релизов
+# Release guide
 
-## Разовая подготовка
+## One-time setup
 
-1. Завести репозиторий на GitHub (private или public) и привязать его
-   к папке `RoLauncher/`.
-2. Держать «эталонную» папку установленной игры (полная, без мода поверх
-   базовых правил — мод кладётся в игру **только через собранные релизы**,
-   см. ниже про `mod/`).
+1. Create a repository on GitHub (private or public) and connect it to the
+   `RoLauncher/` folder.
+2. Keep a "reference" game install folder (full game, no mod applied on top
+   of the base rules — the mod reaches the game **only through built
+   releases**, see below about `mod/`).
 
-## Цикл выпуска версии (черновик, будет автоматизирован)
+## Release cycle (to be automated further)
 
-### 1. Правки мода
+### 1. Mod edits
 
-Все изменения делаем в `mod/` (XML правил, нации, скрипты, карты).
-Здесь лежат **исходники** — распакованные файлы в структуре игры:
-`mod/Data/...`, `mod/rules/...`.
+All changes are made in `mod/` (rule XMLs, nations, scripts, maps).
+This is where the **sources** live — extracted files in the game's folder
+structure: `mod/Data/...`, `mod/rules/...`.
 
-### 2. Перепаковка .big
+### 2. .big repacking
 
-Если менялись правила игры, новый `mod_data.big` собирается из
-распакованных файлов мода инструментом devkit:
+If game rules changed, a new `mod_data.big` is built from the extracted mod
+files with devkit:
 
 ```
-java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar repack "C:\игра_с_модом" "C:\эталонная_игра"
+java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar repack "C:\modded_game" "C:\pristine_game"
 ```
 
-Важно: в `.big`-архивах есть два вида записей — скомпилированные (bxml)
-и текстовые. Инструмент вшивает мод **только в текстовые записи**;
-скомпилированные трогать нельзя (игра падает при старте).
+Important: `.big` archives contain two kinds of entries — compiled (bxml)
+and text. The tool injects the mod **only into text entries**; compiled
+entries must not be touched (the game crashes on startup otherwise).
 
-### 3. Сборка релиза (update-пакеты + манифест)
+### 3. Release build (update packages + manifest)
 
-Одна команда делает всё: сканирует папку новой версии, собирает
-update-пакеты от КАЖДОЙ старой версии из манифеста (игроки не копят
-цепочки пакетов), обновляет манифест и ставит новую версию в `latest`:
+One command does everything: scans the new game folder, builds update
+packages from EVERY old version in the manifest (players never accumulate
+package chains), updates the manifest and sets the new version as `latest`:
 
 ```
 java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar build-release "C:\path\to\game" \
@@ -41,41 +41,41 @@ java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar build-release "C:\path\to\game
     --manifest releases/manifest.json --out release
 ```
 
-В `release/` появятся `update-v0.1.0-v0.2.0.zip` и т.д. (внутри пакета —
-изменённые и добавленные файлы + служебный `.rol-removed.txt` со списком
-на удаление). Для пакетов только от последних N версий: `--recent 3`.
+`release/` will contain `update-v0.1.0-v0.2.0.zip` and so on (inside each
+package: changed and added files + a special `.rol-removed.txt` with the
+deletion list). To build packages only for the last N versions: `--recent 3`.
 
-Для проверки/архива можно сохранить снимок новой версии отдельной
-командой `snapshot` (не обязательна для релиза):
+Optionally save a snapshot of the new version for the archive/inspection
+(not required for the release itself):
 
 ```
 java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar snapshot "C:\path\to\game" releases/snapshots/vX.Y.Z.json
 ```
 
-### 4. Базовый архив (редко, при ребейзе)
+### 4. Base archive (rarely, on rebase)
 
-Полная копия игры томами по 1900 МБ (лимит GitHub — 2 ГБ на файл):
+Full game copy split into 1900 MB volumes (GitHub limit — 2 GB per file):
 
 ```
 7z a -t7z -v1900m base-v0.2.0.7z "C:\path\to\game\*"
 ```
 
-Получаются `base-v0.2.0.7z.001`, `.002`… Привязать их к версии —
-через `--base "release\base-v0.2.0.7z.001,release\base-v0.2.0.7z.002"`.
+Produces `base-v0.2.0.7z.001`, `.002`… Attach them to the version via
+`--base "release\base-v0.2.0.7z.001,release\base-v0.2.0.7z.002"`.
 
-### 5. Выкладка
+### 5. Publishing
 
-1. Создать GitHub Release с тегом `vX.Y.Z`:
-   - прикрепить update-пакеты из `release/` (и тома base, если ребейз);
-   - чейнджлог — в описание релиза.
-2. Закоммитить обновлённый `releases/manifest.json` в `main` — это и есть
-   «уведомление»: лаунчеры увидят новую версию при следующей проверке.
+1. Create a GitHub Release with tag `vX.Y.Z`:
+   - attach the update packages from `release/` (and base volumes, if rebased);
+   - changelog goes into the release description.
+2. Commit the updated `releases/manifest.json` to `main` — that is the
+   "notification": launchers will see the new version on their next check.
 
-## Правила
+## Rules
 
-- Никогда не трогать `.big` вручную — только через `tools/repack_big.py`.
-- Не вырезать ничего из базовой версии игры — база всегда полная.
-- Манифест — единственный источник правды о версиях; правки мимо
-  него не считаются релизом.
-- Перед выкладкой прогонять проверку: распаковать update-пакет
-  в чистую копию игры и запустить её.
+- Never touch `.big` files manually — only through `devkit repack`.
+- Never trim anything from the base game version — the base is always full.
+- The manifest is the single source of truth about versions; changes outside
+  it do not count as a release.
+- Before publishing, always verify: extract the update package into a clean
+  game copy and run the game.

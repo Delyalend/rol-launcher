@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -18,19 +19,19 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 /**
- * Перепаковка .big архивов Rise of Legends (порт tools/repack_big.py).
+ * Repacking of Rise of Legends .big archives (port of tools/repack_big.py).
  *
- * Формат .big (WAR-BUILDER): заголовок + блок записей
- * [u32 N][u32 N][u16 0][u8 0], запись = [u32 len][UTF-16 имя][u32 0][u32 0]
+ * .big format (WAR-BUILDER): header + entry block
+ * [u32 N][u32 N][u16 0][u8 0], entry = [u32 len][UTF-16 name][u32 0][u32 0]
  * [u32 offset][u32 size][u32 0][u32 ts][u32 len][UTF-16 ext][u16 0];
- * в offset лежит [u32 zsize][zlib|raw-deflate поток].
+ * at offset: [u32 zsize][zlib|raw-deflate stream].
  *
- * Правила (выстрадано практикой):
- *  - скомпилированные записи (ext="bxml", начинаются с 01 00 00 00)
- *    НЕ трогаем — текст в них валит игру при старте;
- *  - мод вшивается только в текстовые записи, отсутствующие файлы
- *    добавляются новыми текстовыми записями;
- *  - записи, которые не удалось распаковать, сохраняются как есть.
+ * Rules (learned the hard way):
+ *  - compiled entries (ext="bxml", starting with 01 00 00 00) must NOT be
+ *    touched — text inside them crashes the game on startup;
+ *  - the mod is injected only into text entries; missing files are added as
+ *    new text entries;
+ *  - entries that fail to decompress are preserved as-is.
  */
 final class Repack {
 
@@ -41,8 +42,8 @@ final class Repack {
         String ext;
         long ts;
         long size;
-        byte[] raw;      // сжатые байты как в архиве
-        byte[] payload;  // распакованное содержимое (null, если не распаковалось)
+        byte[] raw;      // compressed bytes as stored in the archive
+        byte[] payload;  // decompressed content (null if not decompressable)
         boolean keepRaw;
 
         Entry(String name, String ext, long ts, long size, byte[] raw, byte[] payload) {
@@ -55,7 +56,7 @@ final class Repack {
         }
     }
 
-    /** Запуск: repack <папка_игры> <эталонная_папка> [папка_бэкапов] */
+    /** Run: repack &lt;game_dir&gt; &lt;pristine_dir&gt; [backup_dir] */
     static void run(String gameDir, String pristineDir, String backupDir) throws IOException {
         Path game = Path.of(gameDir).toAbsolutePath().normalize();
         Path pristine = Path.of(pristineDir).toAbsolutePath().normalize();
@@ -76,7 +77,7 @@ final class Repack {
             Path src = pristine.resolve(t[0]).resolve(t[1]);
             Path dst = game.resolve(t[0]).resolve(t[1]);
             if (!Files.exists(src)) {
-                System.out.println("SKIP (нет исходника): " + src);
+                System.out.println("SKIP (no source): " + src);
                 continue;
             }
             rebuild(src, dst, backup, modFiles);
@@ -88,7 +89,7 @@ final class Repack {
         byte[] data = Files.readAllBytes(src);
         ParseResult parsed = parse(data);
         if (parsed == null) {
-            System.out.println("ERROR: не удалось разобрать " + src);
+            System.out.println("ERROR: cannot parse " + src);
             return;
         }
         List<Entry> entries = parsed.entries;
@@ -100,7 +101,7 @@ final class Repack {
             if (e.payload != null && e.payload.length >= 4
                     && e.payload[0] == 1 && e.payload[1] == 0
                     && e.payload[2] == 0 && e.payload[3] == 0) {
-                e.keepRaw = true; // скомпилированную запись не трогаем
+                e.keepRaw = true; // never touch compiled entries
                 bxml++;
                 continue;
             }
@@ -137,12 +138,12 @@ final class Repack {
         Files.write(dst, out);
         ParseResult check = parse(out);
         boolean ok = check != null && check.entries.size() == entries.size();
-        System.out.println(dst + ": записей=" + entries.size()
-                + " (bxml нетронутых=" + bxml + ", текстовых заменено=" + replaced
-                + ", новых=" + added + ") проверка=" + (ok ? "OK" : "FAIL"));
+        System.out.println(dst + ": entries=" + entries.size()
+                + " (bxml untouched=" + bxml + ", text replaced=" + replaced
+                + ", new=" + added + ") verify=" + (ok ? "OK" : "FAIL"));
     }
 
-    // ---------- разбор и сборка ----------
+    // ---------- parsing and building ----------
 
     private record ParseResult(int block2Start, List<Entry> entries) {}
 
@@ -193,7 +194,7 @@ final class Repack {
         if (off + 4 > b.length) return null;
         int len = ByteBuffer.wrap(b, off, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
         if (len > 500 || off + 4 + len * 2 > b.length) return null;
-        return new String(b, off + 4, len * 2, java.nio.charset.StandardCharsets.UTF_16LE);
+        return new String(b, off + 4, len * 2, StandardCharsets.UTF_16LE);
     }
 
     private static NameRead readName(byte[] b, int off) {
@@ -221,7 +222,7 @@ final class Repack {
                 }
                 return out.toByteArray();
             } catch (DataFormatException e) {
-                // пробуем следующий вариант
+                // try the next variant
             } finally {
                 inf.end();
             }
@@ -231,7 +232,7 @@ final class Repack {
 
     private static byte[] build(byte[] original, int block2Start, List<Entry> entries) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.write(original, 0, block2Start); // заголовок и блок ссылок — как в оригинале
+        out.write(original, 0, block2Start); // header and reference block as in the original
         writeInt(out, entries.size());
         writeInt(out, entries.size());
         writeShort(out, 0);
@@ -239,17 +240,16 @@ final class Repack {
 
         List<byte[]> table = new ArrayList<>(entries.size());
         List<byte[]> payloads = new ArrayList<>(entries.size());
-        List<Long> sizes = new ArrayList<>(entries.size());
         for (Entry e : entries) {
-            byte[] nm = e.name.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
-            byte[] ex = e.ext.getBytes(java.nio.charset.StandardCharsets.UTF_16LE);
+            byte[] nm = e.name.getBytes(StandardCharsets.UTF_16LE);
+            byte[] ex = e.ext.getBytes(StandardCharsets.UTF_16LE);
             byte[] comp = e.keepRaw && e.raw != null ? e.raw : deflate(e.payload);
             ByteArrayOutputStream t = new ByteArrayOutputStream();
             writeInt(t, nm.length / 2);
             t.writeBytes(nm);
             writeInt(t, 0);
             writeInt(t, 0);
-            writeInt(t, 0); // offset — заполним ниже
+            writeInt(t, 0); // offset — filled in below
             writeInt(t, Math.toIntExact(e.size));
             writeInt(t, 0);
             writeInt(t, Math.toIntExact(e.ts));
@@ -258,7 +258,6 @@ final class Repack {
             writeShort(t, 0);
             table.add(t.toByteArray());
             payloads.add(comp);
-            sizes.add(e.size);
         }
 
         int tableLen = 0;
@@ -267,7 +266,7 @@ final class Repack {
         long cur = dataOff;
         for (int i = 0; i < entries.size(); i++) {
             byte[] t = table.get(i);
-            // offset записан в t на позиции 4 + nmLen + 8
+            // offset is stored in t at position 4 + nameLen + 8
             int nmLen = entries.get(i).name.length() * 2;
             putInt(t, 4 + nmLen + 8, Math.toIntExact(cur));
             out.writeBytes(t);
@@ -293,7 +292,7 @@ final class Repack {
         return out.toByteArray();
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private static void collectLoose(Path dataDir, Path gameRoot, Map<String, Path> modFiles)
             throws IOException {
@@ -302,7 +301,7 @@ final class Repack {
                 String name = p.getFileName().toString();
                 if (!name.toLowerCase(Locale.ROOT).endsWith(".xml")) continue;
                 String key = norm(gameRoot.relativize(p).toString());
-                // эти файлы живут в multiplayer_data.big, а схема вообще не нужна
+                // these files live in multiplayer_data.big, and the schema is not needed at runtime
                 if (key.equals("data/how_to_play.xml")
                         || key.equals("data/resourcerules_strings.xml")
                         || key.equals("data/unitrules.xsd")) {

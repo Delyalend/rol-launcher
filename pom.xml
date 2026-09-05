@@ -9,7 +9,7 @@
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>RoLauncher Project</name>
-    <description>Лаунчер, инструменты и система обновлений для Rise of Legends</description>
+    <description>Launcher, tools and update system for Rise of Legends</description>
 
     <modules>
         <module>devkit</module>

@@ -3,17 +3,17 @@ package rol.devkit;
 import java.util.List;
 
 /**
- * RoL DevKit — CLI-инструменты разработчика.
+ * RoL DevKit — developer CLI tools.
  *
- * Команды:
- *   snapshot <папка> [файл.json]   — снимок папки: пути, размеры, SHA-256
- *   diff <старый.json> <новый.json> — сравнение двух снимков
- *   repack <папка_игры> <эталонная_папка> [папка_бэкапов] — вшить мод в .big
- *   build-release <папка> --version vX.Y.Z [--changelog f] [--manifest f]
- *                 [--out dir] [--recent N] [--base a,b] — update-пакеты и манифест
+ * Commands:
+ *   snapshot &lt;folder&gt; [file.json]   — folder snapshot: paths, sizes, SHA-256
+ *   diff &lt;old.json&gt; &lt;new.json&gt; — compare two snapshots
+ *   repack &lt;game_dir&gt; &lt;pristine_dir&gt; [backup_dir] — embed mod into .big
+ *   build-release &lt;folder&gt; --version vX.Y.Z [--changelog f] [--manifest f]
+ *                 [--out dir] [--recent N] [--base a,b] — update packages + manifest
  *
- * Сборка без Maven:  javac -d out devkit/src/main/java/rol/devkit/*.java
- * Запуск:            java -cp out rol.devkit.Main snapshot "C:\path\to\game"
+ * Build without Maven:  javac -d out devkit/src/main/java/rol/devkit/*.java
+ * Run:                  java -cp out rol.devkit.Main snapshot "C:\path\to\game"
  */
 public final class Main {
 
@@ -30,7 +30,7 @@ public final class Main {
                     if (args.length < 2) { usage(); return; }
                     String out = args.length > 2 ? args[2] : "snapshot.json";
                     Snapshot.save(args[1], out);
-                    System.out.println("Снимок сохранён: " + out);
+                    System.out.println("Snapshot saved: " + out);
                 }
                 case "diff" -> {
                     if (args.length < 3) { usage(); return; }
@@ -49,7 +49,7 @@ public final class Main {
                 default -> usage();
             }
         } catch (Exception e) {
-            System.err.println("Ошибка: " + e.getMessage());
+            System.err.println("Error: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -57,9 +57,11 @@ public final class Main {
     private static void usage() {
         System.out.println("""
                 RoL DevKit
-                  snapshot <папка> [файл.json]    — снимок папки (размеры + SHA-256)
-                  diff <старый.json> <новый.json> — сравнение двух снимков
-                  repack <игра> <эталон> [бэкапы] — вшить распакованный мод в .big
+                  snapshot <folder> [file.json]     — folder snapshot (sizes + SHA-256)
+                  diff <old.json> <new.json>        — compare two snapshots
+                  repack <game> <pristine> [backup] — embed extracted mod into .big
+                  build-release <folder> --version vX.Y.Z [--changelog f] [--manifest f]
+                                [--out dir] [--recent N] [--base a,b]
                 """);
     }
 }

@@ -1,47 +1,50 @@
-# Исходники мода
+# Mod sources
 
-Здесь лежат **исходники** изменений игры: распакованные XML правил,
-нации, скрипты и карты — в той же структуре папок, что и в установленной
-игре. Это «исходный код»: сюда вносятся правки, отсюда собираются релизы.
+This folder holds the **sources** of the game modifications: extracted rule
+XMLs, nations, scripts and maps — in the same folder structure as the
+installed game. This is the "source code": edits are made here, releases are
+built from here.
 
-## Структура (повторяет папки игры)
+## Structure (mirrors the game folders)
 
 ```
 mod/
-├── Data/            # rules.xml, unitrules.xml, tribes\... (нации), spells\
-├── rules/           # .bhs скрипты (AI, правила)
-├── campaigns/       # .bhs скрипты кампаний
-└── maps/            # карты (в т.ч. с включёнными новыми нациями)
+├── Data/            # rules.xml, unitrules.xml, tribes\... (nations), spells\
+├── rules/           # .bhs scripts (AI, rules)
+├── campaigns/       # .bhs campaign scripts
+└── maps/            # maps (incl. those with new nations enabled)
 ```
 
-## Важные факты об игре (накопили по ходу дела)
+## Important facts about the game (learned the hard way)
 
-- Все данные игры лежат в `.big`-архивах (формат WAR-BUILDER:
-  имена UTF-16, данные zlib). Правила игры — в `BIGS\mod_data.big`.
-- Файлы правил в архиве существуют в **двух видах**:
-  - скомпилированный (bxml) — его использует мультиплеер;
-  - текстовый — его одиночная игра может переопределять распакованным
-    файлом из папки `Data\` (движок сравнивает даты файлов).
-- В мультиплеере (даже LAN) распакованные файлы игнорируются —
-  изменения должны быть вшиты в сами `.big`. Вшивать можно только
-  в текстовые записи: текст в скомпилированные класть нельзя,
-  игра падает при старте.
-- Мод «New Nations» (Motter) добавляет нации и скрипты, но часть наций
-  в его раздаче отсутствует в архивах — поэтому в LAN были «пустые»
-  спавны. Наши релизы должны собирать архивы через `tools/repack_big.py`,
-  а не копировать готовые `.big` из чужих сборок.
-- Игра сама перезаписывает `mod_data.big` при запуске (обновляет
-  служебные данные) — это нормально, на целостность не влияет.
+- All game data lives in `.big` archives (WAR-BUILDER format: UTF-16 names,
+  zlib data). Game rules are in `BIGS\mod_data.big`.
+- Rule files exist in the archive in **two forms**:
+  - compiled (bxml) — used by multiplayer;
+  - text — single player can override it with an extracted file from the
+    `Data\` folder (the engine compares file timestamps).
+- In multiplayer (even LAN) extracted files are ignored — changes must be
+  embedded into the `.big` files themselves. Injection is only allowed into
+  text entries: putting text into compiled entries crashes the game on
+  startup.
+- The "New Nations" mod (Motter) adds nations and scripts, but its
+  distribution is missing some nations from the archives — that caused the
+  "empty" spawns in LAN. Our releases must build archives via
+  `devkit repack`, never copy ready-made `.big` files from third-party
+  builds.
+- The game itself rewrites `mod_data.big` on startup (updates its internal
+  bookkeeping) — that is normal and does not affect integrity.
 
-## Чего здесь НЕ будет
+## What will NOT be here
 
-- Полной копии игры (2.9 ГБ) — она живёт в GitHub Releases.
-- Готовых `.big` — это артефакты сборки, тоже только в Releases.
+- The full game copy (2.9 GB) — it lives in GitHub Releases.
+- Built `.big` files — build artifacts, Releases only.
 
-## Порядок внесения изменений
+## Change workflow
 
-1. Правишь файлы здесь (или копируешь изменённые из игры сюда).
-2. Прогоняешь `devkit repack` (`java -jar devkit/target/devkit-*.jar repack <игра_с_модом> <эталон>`) — собираешь новый `mod_data.big`.
-3. Проверяешь в игре (одиночная + LAN).
-4. Фиксируешь в git — история изменений видна всем.
-5. Выпускаешь релиз по `docs/release-guide.md`.
+1. Edit files here (or copy changed files from the game here).
+2. Run `devkit repack` (`java -jar devkit/target/devkit-*.jar repack <modded_game> <pristine>`)
+   — builds the new `mod_data.big`.
+3. Test in the game (single player + LAN).
+4. Commit to git — change history is visible to everyone.
+5. Publish a release per `docs/release-guide.md`.
