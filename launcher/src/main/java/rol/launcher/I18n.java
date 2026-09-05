@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.MissingResourceException;
 import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 
@@ -14,42 +17,55 @@ import java.util.ResourceBundle;
  *
  * Bundle base name: rol/launcher/strings (strings.properties = English
  * default, strings_ru.properties = Russian).
+ *
+ * Note: ResourceBundle.Control is NOT supported in named modules
+ * (UnsupportedOperationException), so bundles are loaded manually —
+ * UTF-8 via PropertyResourceBundle(Reader) with a simple fallback chain:
+ * the locale bundle first, then the English base.
  */
 public final class I18n {
 
-    private static ResourceBundle bundle;
+    private static final String BASE = "rol/launcher/strings";
+
+    private static Locale locale = Locale.ENGLISH;
+    private static List<ResourceBundle> chain = new ArrayList<>();
 
     private I18n() {}
 
     public static void setLocale(Locale locale) {
-        bundle = ResourceBundle.getBundle("rol/launcher/strings", locale, new Utf8Control());
+        I18n.locale = locale;
+        List<ResourceBundle> bundles = new ArrayList<>();
+        load(BASE + "_" + locale.getLanguage() + ".properties", bundles);
+        load(BASE + ".properties", bundles); // English fallback, always last
+        if (bundles.isEmpty()) {
+            throw new IllegalStateException("No string bundles found for " + BASE);
+        }
+        chain = bundles;
     }
 
     public static String get(String key) {
-        return bundle.getString(key);
+        for (ResourceBundle bundle : chain) {
+            if (bundle.containsKey(key)) {
+                return bundle.getString(key);
+            }
+        }
+        throw new MissingResourceException("Key not found: " + key, I18n.class.getName(), key);
     }
 
     public static Locale getLocale() {
-        return bundle.getLocale();
+        return locale;
     }
 
-    /**
-     * ResourceBundle.Control that reads .properties files as UTF-8 —
-     * the default control assumes ISO-8859-1, which breaks Russian texts.
-     */
-    private static final class Utf8Control extends ResourceBundle.Control {
-        @Override
-        public ResourceBundle newBundle(String baseName, Locale locale, String format,
-                                        ClassLoader loader, boolean reload)
-                throws IOException {
-            String bundleName = toBundleName(baseName, locale);
-            String resourceName = toResourceName(bundleName, "properties");
-            try (InputStream in = loader.getResourceAsStream(resourceName)) {
-                if (in == null) {
-                    return null; // let the parent chain handle it (fallback to English)
-                }
-                return new PropertyResourceBundle(new InputStreamReader(in, StandardCharsets.UTF_8));
+    private static void load(String resource, List<ResourceBundle> out) {
+        // Class.getResourceAsStream (not ClassLoader!) — the classloader does not
+        // see resources of named modules, but the module itself always can.
+        try (InputStream in = I18n.class.getResourceAsStream("/" + resource)) {
+            if (in == null) {
+                return;
             }
+            out.add(new PropertyResourceBundle(new InputStreamReader(in, StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            // skip unreadable bundle
         }
     }
 }
