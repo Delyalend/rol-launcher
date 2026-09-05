@@ -64,6 +64,7 @@ stored in git — they live in GitHub Releases as artifacts.
 - [x] `devkit diff` — compare two snapshots (changed/added/removed)
 - [x] `.big` archive repacking in Java (`devkit repack`, ported from Python)
 - [x] `devkit build-release` — update packages for every version + manifest update
+- [x] `devkit build-base` — split-zip base archive volumes
 - [x] Launcher main screen: installed/latest version, update check, game launch
 - [x] Launcher: download with resume, install from base volumes, apply update packages
 - [x] Launcher: version switching (in place, forward packages / backward via base)
@@ -79,6 +80,7 @@ java -jar devkit/target/devkit-*.jar snapshot "C:\path\to\game"
 java -jar devkit/target/devkit-*.jar diff old.json new.json
 java -jar devkit/target/devkit-*.jar repack "C:\modded_game" "C:\pristine_game"
 java -jar devkit/target/devkit-*.jar build-release "C:\path\to\game" --version v0.2.0
+java -jar devkit/target/devkit-*.jar build-base "C:\path\to\game" --out release --name base-v0.1.0.zip
 ```
 
 `devkit` builds without Maven too:

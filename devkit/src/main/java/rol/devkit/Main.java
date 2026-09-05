@@ -11,6 +11,7 @@ import java.util.List;
  *   repack &lt;game_dir&gt; &lt;pristine_dir&gt; [backup_dir] — embed mod into .big
  *   build-release &lt;folder&gt; --version vX.Y.Z [--changelog f] [--manifest f]
  *                 [--out dir] [--recent N] [--base a,b] — update packages + manifest
+ *   build-base &lt;folder&gt; [--out dir] [--name base.zip] [--volume 1900m] — split-zip volumes
  *
  * Build without Maven:  javac -d out devkit/src/main/java/rol/devkit/*.java
  * Run:                  java -cp out rol.devkit.Main snapshot "C:\path\to\game"
@@ -46,6 +47,10 @@ public final class Main {
                     if (args.length < 3) { usage(); return; }
                     BuildRelease.run(List.of(args).subList(1, args.length));
                 }
+                case "build-base" -> {
+                    if (args.length < 2) { usage(); return; }
+                    BaseBuilder.run(List.of(args).subList(1, args.length));
+                }
                 default -> usage();
             }
         } catch (Exception e) {
@@ -62,6 +67,7 @@ public final class Main {
                   repack <game> <pristine> [backup] — embed extracted mod into .big
                   build-release <folder> --version vX.Y.Z [--changelog f] [--manifest f]
                                 [--out dir] [--recent N] [--base a,b]
+                  build-base <folder> [--out dir] [--name base.zip] [--volume 1900m]
                 """);
     }
 }

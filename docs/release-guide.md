@@ -56,14 +56,17 @@ java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar snapshot "C:\path\to\game" rel
 
 Full game copy as a ZIP split into 1900 MB byte volumes (GitHub limit —
 2 GB per file; the launcher concatenates the volumes and extracts with the
-JDK, no 7z needed):
+JDK). Built by devkit, streaming, no temp files:
 
 ```
-7z a -tzip -v1900m base-v0.2.0.zip "C:\path\to\game\*"
+java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar build-base "C:\path\to\game" \
+    --out release --name base-v0.2.0.zip --volume 1900m
 ```
 
 Produces `base-v0.2.0.zip.001`, `.002`… Attach them to the version via
 `--base "release\base-v0.2.0.zip.001,release\base-v0.2.0.zip.002"`.
+(Alternative: `7z a -tzip -v1900m base-v0.2.0.zip "C:\path\to\game\*"`
+produces the same volume layout.)
 
 ### 5. Publishing
 
