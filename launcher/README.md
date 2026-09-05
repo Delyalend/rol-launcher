@@ -56,10 +56,14 @@ launcher/
     └── strings_ru.properties    # Russian
 ```
 
-The launcher is a **classpath application** (no module-info): third-party
-jars on the classpath just work, no module resolution headaches. The base
-archive is a regular ZIP split into byte volumes (`base.zip.001`, ...) —
-extraction needs only the JDK, no external archive libraries.
+The launcher is a **modular application** (module-info: requires
+javafx.controls and java.net.http). JavaFX 11+ refuses to start in
+classpath mode ("JavaFX runtime components are missing"), so module mode
+is mandatory — IntelliJ runs it as `-m rol.launcher/rol.launcher.App`.
+If third-party jars appear later, they go on the module path (automatic
+modules). The base archive is a regular ZIP split into byte volumes
+(`base.zip.001`, ...) — extraction needs only the JDK, no external
+archive libraries.
 
 ## Localization
 
