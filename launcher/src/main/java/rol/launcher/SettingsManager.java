@@ -15,6 +15,9 @@ import java.util.Properties;
 public final class SettingsManager {
 
     public static final String KEY_LANGUAGE = "language";
+    public static final String KEY_MANIFEST_URL = "manifestUrl";
+    public static final String KEY_GAME_PATH = "gamePath";
+    public static final String KEY_INSTALLED_VERSION = "installedVersion";
     private static final String FILE_NAME = "settings.properties";
 
     private final Properties props = new Properties();
@@ -37,6 +40,48 @@ public final class SettingsManager {
 
     public void setLanguage(Locale locale) {
         props.setProperty(KEY_LANGUAGE, locale.getLanguage());
+        save();
+    }
+
+    /** Raw manifest URL (raw.githubusercontent.com etc.); empty = not configured. */
+    public String getManifestUrl() {
+        return props.getProperty(KEY_MANIFEST_URL, "");
+    }
+
+    public void setManifestUrl(String url) {
+        if (url == null || url.isBlank()) {
+            props.remove(KEY_MANIFEST_URL);
+        } else {
+            props.setProperty(KEY_MANIFEST_URL, url.trim());
+        }
+        save();
+    }
+
+    /** Path to the game folder; empty = not selected. */
+    public String getGamePath() {
+        return props.getProperty(KEY_GAME_PATH, "");
+    }
+
+    public void setGamePath(String path) {
+        if (path == null || path.isBlank()) {
+            props.remove(KEY_GAME_PATH);
+        } else {
+            props.setProperty(KEY_GAME_PATH, path.trim());
+        }
+        save();
+    }
+
+    /** Locally recorded installed version id; empty = not installed. */
+    public String getInstalledVersion() {
+        return props.getProperty(KEY_INSTALLED_VERSION, "");
+    }
+
+    public void setInstalledVersion(String version) {
+        if (version == null || version.isBlank()) {
+            props.remove(KEY_INSTALLED_VERSION);
+        } else {
+            props.setProperty(KEY_INSTALLED_VERSION, version.trim());
+        }
         save();
     }
 

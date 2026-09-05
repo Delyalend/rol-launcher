@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.PropertyResourceBundle;
@@ -50,6 +51,11 @@ public final class I18n {
             }
         }
         throw new MissingResourceException("Key not found: " + key, I18n.class.getName(), key);
+    }
+
+    /** Same as get(key), but formats {0}, {1}, ... placeholders with the args. */
+    public static String get(String key, Object... args) {
+        return MessageFormat.format(get(key), args);
     }
 
     public static Locale getLocale() {

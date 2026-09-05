@@ -39,16 +39,18 @@ manifest.json (raw.githubusercontent.com)
 ```
 launcher/
 ├── src/main/java/rol/launcher/
-│   ├── App.java                 # JavaFX entry point, menu bar, main view
-│   ├── I18n.java                # ResourceBundle access, locale switching
+│   ├── App.java                 # JavaFX entry point, menu bar, main screen
+│   ├── I18n.java                # bundle access, locale switching, {0} placeholders
 │   ├── SettingsManager.java     # settings persistence (%APPDATA%\RoLauncher\)
-│   ├── SettingsDialog.java      # settings window (language selection)
+│   ├── SettingsDialog.java      # settings window (language, manifest URL, game folder)
+│   ├── Manifest.java            # typed view over the parsed manifest
+│   ├── ManifestClient.java      # manifest.json download (java.net.http) and parsing
+│   ├── GameRunner.java          # legends.exe launch
+│   ├── util/Json.java           # minimal JSON parser (no external dependencies)
 │   │   # planned:
-│   ├── ManifestClient.java      # manifest.json download and parsing
 │   ├── Downloader.java          # downloads with progress and resume
 │   ├── Updater.java             # update package application, hash checks
-│   ├── VersionManager.java      # installed versions, switching
-│   └── GameRunner.java          # legends.exe launch
+│   └── VersionManager.java      # installed versions, switching
 └── src/main/resources/rol/launcher/
     ├── strings.properties       # English (default)
     └── strings_ru.properties    # Russian
@@ -62,9 +64,16 @@ The bundles are `strings.properties` (English default) and
 create `strings_&lt;lang&gt;.properties`, add the locale to the menus in
 `App` and the combo in `SettingsDialog`.
 
-Language is persisted in `%APPDATA%\RoLauncher\settings.properties`
-(`language=en|ru`), applied on startup. Quick switch: menu
-Language → English/Русский; or File → Settings → Language.
+Language, manifest URL, game folder and the locally recorded installed
+version are persisted in `%APPDATA%\RoLauncher\settings.properties`,
+applied on startup. Quick switch: menu Language → English/Русский;
+or File → Settings → Language.
+
+On startup (and on "Check for updates") the launcher downloads the
+manifest from the configured raw URL, compares the installed version with
+`latest` and shows an update banner with the changelog. "Play" launches
+`legends.exe` from the selected game folder (button enabled only when the
+folder contains the executable).
 
 Launcher state (installed version, paths) is stored locally in
 `%APPDATA%\RoLauncher\`.
