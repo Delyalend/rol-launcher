@@ -89,6 +89,14 @@ extracts them and verifies the whole installation. "Play" launches
 folder contains the executable). Downloads are cached in
 `%APPDATA%\RoLauncher\cache`.
 
+## Logging
+
+All errors (with stack traces) and key events are written to
+`%APPDATA%\RoLauncher\launcher.log` (rotates to `.old` at 1 MB).
+The status line on the main screen is selectable — error text can be
+copied. Help → Open log file opens the log directly; the About dialog
+shows the log path.
+
 Launcher state (installed version, paths) is stored locally in
 `%APPDATA%\RoLauncher\`.
 

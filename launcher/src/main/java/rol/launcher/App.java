@@ -15,6 +15,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -51,11 +52,12 @@ public class App extends Application {
     private Menu versionsMenu;
     private Menu helpMenu;
     private MenuItem aboutItem;
+    private MenuItem logItem;
     // main view
     private Label installedLabel;
     private Label latestLabel;
     private Button checkButton;
-    private Label statusLabel;
+    private TextField statusLabel;
     private VBox updateBox;
     private Label updateLabel;
     private Label changelogCaption;
@@ -76,6 +78,7 @@ public class App extends Application {
     public void start(Stage stage) {
         this.stage = stage;
         I18n.setLocale(settings.getLanguage());
+        Log.info("Launcher started, version-check URL: " + settings.getManifestUrl());
         buildUi();
         applyI18n();
         stage.show();
@@ -112,8 +115,11 @@ public class App extends Application {
         // Help menu
         aboutItem = new MenuItem();
         aboutItem.setOnAction(e -> showAbout());
+        MenuItem openLogItem = new MenuItem();
+        openLogItem.setOnAction(e -> openLog());
         helpMenu = new Menu();
-        helpMenu.getItems().add(aboutItem);
+        helpMenu.getItems().addAll(openLogItem, new SeparatorMenuItem(), aboutItem);
+        logItem = openLogItem;
 
         menuBar = new MenuBar(fileMenu, languageMenu, versionsMenu, helpMenu);
 
@@ -122,8 +128,11 @@ public class App extends Application {
         latestLabel = new Label();
         checkButton = new Button();
         checkButton.setOnAction(e -> checkUpdates());
-        statusLabel = new Label();
-        statusLabel.setWrapText(true);
+        statusLabel = new TextField();
+        statusLabel.setEditable(false);
+        statusLabel.setFocusTraversable(false);
+        statusLabel.setStyle("-fx-background-color: transparent; "
+                + "-fx-background-insets: 0; -fx-padding: 0; -fx-border-color: transparent;");
 
         updateLabel = new Label();
         updateLabel.setStyle("-fx-font-weight: bold");
@@ -199,9 +208,11 @@ public class App extends Application {
                 Manifest manifest = ManifestClient.fetch(settings.getManifestUrl());
                 Platform.runLater(() -> onManifestLoaded(manifest));
             } catch (Exception e) {
+                Log.error("Manifest check failed", e);
                 Platform.runLater(() -> {
                     checking = false;
-                    statusLabel.setText(I18n.get("main.check.error", e.getMessage()));
+                    statusLabel.setText(I18n.get("main.check.error", e.getMessage())
+                            + " - " + I18n.get("main.error.hint", Log.file()));
                 });
             }
         });
@@ -212,6 +223,7 @@ public class App extends Application {
     private void onManifestLoaded(Manifest manifest) {
         checking = false;
         lastManifest = manifest;
+        Log.info("Manifest loaded, latest=" + manifest.latest());
         latestVersionId = manifest.latest();
         Map<String, Object> latest = manifest.latestVersion();
         latestChangelog = latest == null ? List.of() : Manifest.changelogOf(latest);
@@ -336,10 +348,12 @@ public class App extends Application {
                     onSuccess.run();
                 });
             } catch (Exception e) {
+                Log.error("Task failed", e);
                 Platform.runLater(() -> {
                     setBusyUi(false);
                     busy = false;
-                    statusLabel.setText(I18n.get("main.task.error", e.getMessage()));
+                    statusLabel.setText(I18n.get("main.task.error", e.getMessage())
+                            + " - " + I18n.get("main.error.hint", Log.file()));
                 });
             }
         });
@@ -368,15 +382,29 @@ public class App extends Application {
         try {
             GameRunner.launch(settings.getGamePath());
         } catch (IOException e) {
-            statusLabel.setText(I18n.get("main.play.error", e.getMessage()));
+            Log.error("Failed to launch the game", e);
+            statusLabel.setText(I18n.get("main.play.error", e.getMessage())
+                    + " - " + I18n.get("main.error.hint", Log.file()));
         }
     }
 
     private void showAbout() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION, I18n.get("about.text"), ButtonType.OK);
+        Alert alert = new Alert(Alert.AlertType.INFORMATION,
+                I18n.get("about.text") + System.lineSeparator() + System.lineSeparator()
+                        + I18n.get("main.log.path", Log.file()),
+                ButtonType.OK);
         alert.setTitle(I18n.get("menu.about"));
         alert.setHeaderText(null);
         alert.showAndWait();
+    }
+
+    private void openLog() {
+        try {
+            java.awt.Desktop.getDesktop().open(Log.file().toFile());
+        } catch (Exception e) {
+            Log.error("Failed to open the log file", e);
+            statusLabel.setText(I18n.get("main.log.open.error", e.getMessage()));
+        }
     }
 
     // ---------- state and rendering ----------
@@ -427,6 +455,7 @@ public class App extends Application {
         versionsMenu.setText(I18n.get("menu.versions"));
         helpMenu.setText(I18n.get("menu.help"));
         aboutItem.setText(I18n.get("menu.about"));
+        logItem.setText(I18n.get("menu.openlog"));
         checkButton.setText(I18n.get("main.check"));
         playButton.setText(I18n.get("main.play"));
         updateButton.setText(I18n.get("main.update.button"));
