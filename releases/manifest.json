@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "latest": "v0.1.0",
+  "versions": [
+    {
+      "id": "v0.1.0",
+      "date": "2026-09-06",
+      "changelog": [
+        "Первый релиз: базовая версия игры без изменений",
+        "Подготовлена инфраструктура лаунчера и манифест версий"
+      ],
+      "base": {
+        "parts": [
+          { "file": "base-v0.1.0.7z.001", "size": 1992294400, "sha256": "TODO" },
+          { "file": "base-v0.1.0.7z.002", "size": 500000000, "sha256": "TODO" }
+        ]
+      },
+      "updates_from": {},
+      "files": {
+        "legends.exe": { "size": 15548416, "sha256": "TODO" }
+      },
+      "notes": {
+        "base_parts_total": "~2.5 GB, тома по 1900 MB (лимит GitHub 2 GB на файл)",
+        "files_placeholder": "полный список файлов с SHA-256 формирует tools/build_release.py"
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+# Полная игра и бинарные артефакты — в git не хранятся
+Rise Of Legends/
+*.big
+*.7z
+*.7z.0*
+*.zip
+*.rar
+
+# Артефакты сборки
+build/
+out/
+dist/
+target/
+*.jar
+*.exe
+*.msi
+
+# Снимки версий (крупные JSON) — по необходимости можно включить в git
+releases/snapshots/
+
+# IDE и окружение
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+*.log
