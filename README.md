@@ -47,22 +47,40 @@ GitHub Releases:
 | Папка | Что внутри |
 |---|---|
 | `mod/` | Исходники мода: XML правил, нации, скрипты `.bhs`, карты |
-| `tools/` | Инструменты: перепаковка `.big`, снапшоты, сборка релизов |
+| `devkit/` | Java-модуль: CLI-инструменты разработчика (снимки, diff, сборка релизов) |
+| `launcher/` | Java-модуль: лаунчер на JavaFX |
+| `tools/` | Вспомогательные скрипты (Python-перепаковка `.big` до порта в Java) |
 | `releases/` | `manifest.json` — манифест версий (источник правды для лаунчера) |
-| `launcher/` | Код лаунчера (JavaFX) |
 | `docs/` | Архитектура, гайд по выпуску релизов |
 
+Проект — Maven multi-module (`devkit` + `launcher`), везде Java 21.
 Полная игра (2.9 ГБ) и готовые `.big`-архивы **в git не кладутся** —
 они живут в GitHub Releases как артефакты.
 
 ## Дорожная карта
 
 - [x] Структура проекта и документация
-- [x] Инструмент перепаковки `.big`-архивов (`tools/repack_big.py`)
-- [ ] `tools/snapshot.py` — снимок папки игры (файлы + SHA-256)
-- [ ] `tools/build_release.py` — сборка update-пакета из двух снимков
-- [ ] Лаунчер на JavaFX: установка, обновление, выбор версии, запуск игры
+- [x] Maven multi-module: `devkit` (CLI) + `launcher` (JavaFX-скелет)
+- [x] `devkit snapshot` — снимок папки игры (файлы + SHA-256)
+- [x] `devkit diff` — сравнение двух снимков (изменённые/добавленные/удалённые)
+- [x] Перепаковка `.big`-архивов в Java (`devkit repack`, порт из Python)
+- [x] `devkit build-release` — update-пакеты от каждой версии + обновление манифеста
+- [ ] Лаунчер: установка, обновление, выбор версии, запуск игры
 - [ ] Выкладка первого релиза в GitHub Releases
+
+## Сборка
+
+Требуется JDK 21 и Maven (или IDE с поддержкой Maven, напр. IntelliJ IDEA).
+
+```
+mvn -q package                     # собрать оба модуля
+java -jar devkit/target/devkit-*.jar snapshot "C:\путь\к\игре"
+java -jar devkit/target/devkit-*.jar diff old.json new.json
+java -jar devkit/target/devkit-*.jar repack "C:\игра_с_модом" "C:\эталонная_игра"
+java -jar devkit/target/devkit-*.jar build-release "C:\путь\к\игре" --version v0.2.0
+```
+
+`devkit` собирается и без Maven: `javac -d out devkit/src/main/java/rol/devkit/*.java`
 
 ## Соглашения
 

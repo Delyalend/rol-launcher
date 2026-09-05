@@ -1,10 +1,30 @@
 # Инструменты
 
+Основные инструменты живут в Java-модуле `devkit/`: `snapshot`, `diff`,
+`repack`, `build-release`. Эта папка — только для легаси-скриптов.
+
 | Файл | Назначение | Статус |
 |---|---|---|
-| `repack_big.py` | Вшивает распакованные файлы мода в `.big`-архивы игры | рабочий |
-| `snapshot.py` | Снимок папки игры: файлы + SHA-256 | в планах |
-| `build_release.py` | Сборка update-пакета и манифеста из двух снимков | в планах |
+| `repack_big.py` | Python-версия перепаковки `.big` | легаси: портирована в `devkit repack`, оставлена как эталон |
+
+## Быстрый старт devkit (Java)
+
+```
+# без Maven:
+javac -d out devkit/src/main/java/rol/devkit/*.java
+java -cp out rol.devkit.Main snapshot "C:\путь\к\игре" snapshot-v0.2.0.json
+java -cp out rol.devkit.Main diff snapshot-v0.1.0.json snapshot-v0.2.0.json
+java -cp out rol.devkit.Main repack "C:\игра_с_модом" "C:\эталонная_игра"
+
+# с Maven:
+mvn -q package
+java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar snapshot "C:\путь\к\игре"
+```
+
+`repack` перезаписывает 3 копии `mod_data.big` в папке игры
+(`BIGS\`, `BIGS\patch8\`, `BIGS\patches\patch8\`), исходники кладёт
+в папку бэкапов (по умолчанию `_bigs_backup_original` рядом с игрой).
+Скомпилированные (bxml) записи не трогает.
 
 ## repack_big.py
 

@@ -1,27 +1,41 @@
 {
   "schema_version": 1,
-  "latest": "v0.1.0",
+  "latest": "v0.2.0",
   "versions": [
     {
       "id": "v0.1.0",
-      "date": "2026-09-06",
+      "date": "2026-09-06T00:00:00Z",
       "changelog": [
-        "Первый релиз: базовая версия игры без изменений",
-        "Подготовлена инфраструктура лаунчера и манифест версий"
+        "Первый релиз: базовая версия игры"
       ],
       "base": {
         "parts": [
-          { "file": "base-v0.1.0.7z.001", "size": 1992294400, "sha256": "TODO" },
-          { "file": "base-v0.1.0.7z.002", "size": 500000000, "sha256": "TODO" }
+          { "file": "base-v0.1.0.7z.001", "size": 1992294400, "sha256": "TODO-хэш-тома-1" },
+          { "file": "base-v0.1.0.7z.002", "size": 500000000, "sha256": "TODO-хэш-тома-2" }
         ]
       },
       "updates_from": {},
       "files": {
-        "legends.exe": { "size": 15548416, "sha256": "TODO" }
+        "legends.exe": { "s": 15548416, "h": "TODO" },
+        "BIGS/mod_data.big": { "s": 696691, "h": "TODO" }
+      }
+    },
+    {
+      "id": "v0.2.0",
+      "date": "2026-09-06T00:00:00Z",
+      "changelog": [
+        "Пример записи с update-пакетом"
+      ],
+      "updates_from": {
+        "v0.1.0": {
+          "file": "update-v0.1.0-v0.2.0.zip",
+          "size": 48211,
+          "sha256": "TODO-хэш-пакета"
+        }
       },
-      "notes": {
-        "base_parts_total": "~2.5 GB, тома по 1900 MB (лимит GitHub 2 GB на файл)",
-        "files_placeholder": "полный список файлов с SHA-256 формирует tools/build_release.py"
+      "files": {
+        "legends.exe": { "s": 15548416, "h": "TODO" },
+        "BIGS/mod_data.big": { "s": 700000, "h": "TODO" }
       }
     }
   ]
