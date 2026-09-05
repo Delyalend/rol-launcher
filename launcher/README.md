@@ -34,19 +34,37 @@ manifest.json (raw.githubusercontent.com)
   → record the new version in the local state
 ```
 
-## Planned module layout
+## Module layout
 
 ```
 launcher/
 ├── src/main/java/rol/launcher/
-│   ├── App.java                 # JavaFX entry point
+│   ├── App.java                 # JavaFX entry point, menu bar, main view
+│   ├── I18n.java                # ResourceBundle access, locale switching
+│   ├── SettingsManager.java     # settings persistence (%APPDATA%\RoLauncher\)
+│   ├── SettingsDialog.java      # settings window (language selection)
+│   │   # planned:
 │   ├── ManifestClient.java      # manifest.json download and parsing
 │   ├── Downloader.java          # downloads with progress and resume
 │   ├── Updater.java             # update package application, hash checks
 │   ├── VersionManager.java      # installed versions, switching
 │   └── GameRunner.java          # legends.exe launch
-└── src/main/resources/          # FXML, styles, icons
+└── src/main/resources/rol/launcher/
+    ├── strings.properties       # English (default)
+    └── strings_ru.properties    # Russian
 ```
+
+## Localization
+
+All UI texts go through `I18n.get("key")` — never hardcoded in code.
+The bundles are `strings.properties` (English default) and
+`strings_ru.properties` (Russian), loaded as UTF-8. To add a language:
+create `strings_&lt;lang&gt;.properties`, add the locale to the menus in
+`App` and the combo in `SettingsDialog`.
+
+Language is persisted in `%APPDATA%\RoLauncher\settings.properties`
+(`language=en|ru`), applied on startup. Quick switch: menu
+Language → English/Русский; or File → Settings → Language.
 
 Launcher state (installed version, paths) is stored locally in
 `%APPDATA%\RoLauncher\`.
