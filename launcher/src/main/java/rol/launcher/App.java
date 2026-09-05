@@ -48,6 +48,7 @@ public class App extends Application {
     private Menu languageMenu;
     private RadioMenuItem langEn;
     private RadioMenuItem langRu;
+    private Menu versionsMenu;
     private Menu helpMenu;
     private MenuItem aboutItem;
     // main view
@@ -104,13 +105,17 @@ public class App extends Application {
         languageMenu = new Menu();
         languageMenu.getItems().addAll(langEn, langRu);
 
+        // Versions menu (populated from the manifest)
+        versionsMenu = new Menu();
+        versionsMenu.setDisable(true);
+
         // Help menu
         aboutItem = new MenuItem();
         aboutItem.setOnAction(e -> showAbout());
         helpMenu = new Menu();
         helpMenu.getItems().add(aboutItem);
 
-        menuBar = new MenuBar(fileMenu, languageMenu, helpMenu);
+        menuBar = new MenuBar(fileMenu, languageMenu, versionsMenu, helpMenu);
 
         // Main view
         installedLabel = new Label();
@@ -213,6 +218,7 @@ public class App extends Application {
         renderLatest();
         renderUpdateBox();
         renderInstallButton();
+        refreshVersionsMenu();
         if (!busy) {
             statusLabel.setText(updateBox.isVisible() ? "" : I18n.get("main.check.uptodate"));
         }
@@ -225,6 +231,52 @@ public class App extends Application {
                 && GameRunner.findGameExe(settings.getGamePath()) == null;
         installButton.setVisible(installable);
         installButton.setManaged(installable);
+    }
+
+    /** Rebuilds the Versions menu from the manifest; the installed version is marked. */
+    private void refreshVersionsMenu() {
+        versionsMenu.getItems().clear();
+        if (lastManifest == null) {
+            versionsMenu.setDisable(true);
+            return;
+        }
+        String installed = settings.getInstalledVersion();
+        for (Map<String, Object> v : lastManifest.versions()) {
+            String id = Manifest.idOf(v);
+            MenuItem item = new MenuItem(installed.equals(id) ? "• " + id : id);
+            item.setOnAction(e -> confirmSwitch(id));
+            versionsMenu.getItems().add(item);
+        }
+        versionsMenu.setDisable(busy || versionsMenu.getItems().isEmpty());
+    }
+
+    private void confirmSwitch(String targetId) {
+        if (targetId.equals(settings.getInstalledVersion())) {
+            return;
+        }
+        if (settings.getGamePath().isBlank()) {
+            statusLabel.setText(I18n.get("main.noGamePath"));
+            return;
+        }
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(I18n.get("menu.versions"));
+        alert.setHeaderText(I18n.get("main.switch.confirm",
+                settings.getInstalledVersion(), targetId));
+        alert.setContentText(I18n.get("main.switch.note"));
+        ButtonType switchButton = new ButtonType(I18n.get("main.switch.button"));
+        ButtonType cancelButton = new ButtonType(I18n.get("main.switch.cancel"));
+        alert.getButtonTypes().setAll(switchButton, cancelButton);
+        if (alert.showAndWait().orElse(cancelButton) == switchButton) {
+            runSwitch(targetId);
+        }
+    }
+
+    private void runSwitch(String targetId) {
+        if (busy || lastManifest == null) {
+            return;
+        }
+        runTask(() -> new VersionManager(settings).switchTo(lastManifest, targetId, uiProgress()),
+                () -> statusLabel.setText(I18n.get("main.switch.done", targetId)));
     }
 
     // ---------- update and install ----------
@@ -280,6 +332,7 @@ public class App extends Application {
                     renderInstalled();
                     renderUpdateBox();
                     renderInstallButton();
+                    refreshVersionsMenu();
                     onSuccess.run();
                 });
             } catch (Exception e) {
@@ -300,6 +353,7 @@ public class App extends Application {
         checkButton.setDisable(busy);
         playButton.setDisable(busy
                 || GameRunner.findGameExe(settings.getGamePath()) == null);
+        versionsMenu.setDisable(busy || lastManifest == null || versionsMenu.getItems().isEmpty());
         progressBar.setVisible(busy);
         progressBar.setManaged(busy);
         progressBar.setProgress(0);
@@ -370,6 +424,7 @@ public class App extends Application {
         langRu.setText(I18n.get("settings.language.ru"));
         langEn.setSelected("en".equals(I18n.getLocale().getLanguage()));
         langRu.setSelected("ru".equals(I18n.getLocale().getLanguage()));
+        versionsMenu.setText(I18n.get("menu.versions"));
         helpMenu.setText(I18n.get("menu.help"));
         aboutItem.setText(I18n.get("menu.about"));
         checkButton.setText(I18n.get("main.check"));

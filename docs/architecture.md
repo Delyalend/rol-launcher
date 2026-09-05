@@ -41,19 +41,24 @@ served via `objects.githubusercontent.com` without practical download caps.
 
 ## Version switching
 
-The launcher stores:
+Switching is **in place** — a single game folder is rebuilt for the target
+version, no per-version copies on disk:
 
-```
-<launcher data folder>/
-├── base/                  # extracted base archive (read-only)
-├── cache/                 # downloaded update packages
-└── versions/              # built versions (hard links / file copies)
-```
+- **Forward** (target newer than installed): one update package hop —
+  `updates_from` of the target version contains a package for every older
+  version, so no chains are ever needed.
+- **Backward / far jump**: rebuild from a base archive — the target
+  version's own base if it has one, otherwise the nearest older version
+  with base parts (in manifest order). Extract the base, apply the
+  `update-vBase-vTarget` package, then sweep files that are not listed in
+  the target's files map (leftovers of the newer version).
+- Finally verify SHA-256 of every file against the target version's files
+  map and record the new version locally.
 
-Switching = building the target version from `base/` by applying packages
-into a new `versions/` folder. For the last 2-3 versions it takes seconds
-(packages are small). Periodically (about every 10 versions) we do a
-"rebase": publish a new base archive, keeping the chains short.
+Downloads are cached in `%APPDATA%\RoLauncher\cache`, so rebuilds reuse
+previously downloaded volumes and packages. Periodically (about every 10
+versions) we do a "rebase": publish a new base archive, keeping the
+rebuild paths short.
 
 ## Manifest format
 

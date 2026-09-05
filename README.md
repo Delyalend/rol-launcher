@@ -66,7 +66,7 @@ stored in git — they live in GitHub Releases as artifacts.
 - [x] `devkit build-release` — update packages for every version + manifest update
 - [x] Launcher main screen: installed/latest version, update check, game launch
 - [x] Launcher: download with resume, install from base volumes, apply update packages
-- [ ] Launcher: version switching UI
+- [x] Launcher: version switching (in place, forward packages / backward via base)
 - [ ] First release published to GitHub Releases
 
 ## Build

@@ -76,11 +76,108 @@ public final class VersionManager {
         progress.stage(STAGE_VERIFY);
         @SuppressWarnings("unchecked")
         Map<String, Object> files = (Map<String, Object>) latest.get("files");
+        Updater.removeExtras(gameDir, files, null);
         List<String> problems = Updater.verify(gameDir, files, null, progress::progress);
         if (!problems.isEmpty()) {
             throw new IOException("Verification failed: " + summarize(problems));
         }
         settings.setInstalledVersion(manifest.latest());
+    }
+
+    /**
+     * Switches the installed game to the target version, in place:
+     * forward jumps use a single update package; backward or far jumps
+     * rebuild from the base archive of the nearest base version (or the
+     * target's own base) and then apply a package up to the target.
+     */
+    public void switchTo(Manifest manifest, String targetId, Progress progress)
+            throws IOException, InterruptedException, NoSuchAlgorithmException {
+        String current = settings.getInstalledVersion();
+        if (targetId.equals(current)) {
+            return;
+        }
+        Map<String, Object> target = manifest.version(targetId);
+        if (target == null) {
+            throw new IOException("Version is not in the manifest: " + targetId);
+        }
+        if (settings.getGamePath().isBlank()) {
+            throw new IOException("Game folder is not set in the settings");
+        }
+        Path gameDir = Path.of(settings.getGamePath());
+
+        // forward: one update package hop
+        if (Manifest.updateOf(target, current) != null) {
+            updateTo(manifest, targetId, progress);
+            return;
+        }
+
+        // backward or far jump: rebuild from a base archive
+        Map<String, Object> baseVersion = findBaseVersion(manifest, targetId);
+        if (baseVersion == null) {
+            throw new IOException("No base archive available for version " + targetId);
+        }
+        boolean baseIsTarget = Manifest.idOf(baseVersion).equals(targetId);
+
+        progress.stage(STAGE_DOWNLOAD);
+        List<Path> volumes = new ArrayList<>();
+        for (Map<String, Object> part : Manifest.basePartsOf(baseVersion)) {
+            String file = (String) part.get("file");
+            Path local = Downloader.download(fileUrl(file), cacheDir(), file, progress::progress);
+            verifyPart(local, part);
+            volumes.add(local);
+        }
+
+        progress.stage(STAGE_EXTRACT);
+        Updater.extractBase(volumes.toArray(Path[]::new), gameDir, progress::progress);
+
+        if (!baseIsTarget) {
+            Map<String, Object> upd = Manifest.updateOf(target, Manifest.idOf(baseVersion));
+            if (upd == null) {
+                throw new IOException("No update path from " + Manifest.idOf(baseVersion)
+                        + " to " + targetId);
+            }
+            progress.stage(STAGE_DOWNLOAD);
+            String file = (String) upd.get("file");
+            Path pkg = Downloader.download(fileUrl(file), cacheDir(), file, progress::progress);
+            verifyPart(pkg, upd);
+            progress.stage(STAGE_APPLY);
+            Updater.applyPackage(pkg, gameDir, progress::progress);
+        }
+
+        // sweep files that do not belong to the target version
+        @SuppressWarnings("unchecked")
+        Map<String, Object> files = (Map<String, Object>) target.get("files");
+        Updater.removeExtras(gameDir, files, null);
+
+        progress.stage(STAGE_VERIFY);
+        List<String> problems = Updater.verify(gameDir, files, null, progress::progress);
+        if (!problems.isEmpty()) {
+            throw new IOException("Verification failed: " + summarize(problems));
+        }
+        settings.setInstalledVersion(targetId);
+    }
+
+    /** The target version itself if it has a base, else the nearest older
+     * version (in manifest order) that has base parts; null if none. */
+    private Map<String, Object> findBaseVersion(Manifest manifest, String targetId) {
+        List<Map<String, Object>> versions = manifest.versions();
+        int targetIdx = -1;
+        for (int i = 0; i < versions.size(); i++) {
+            if (Manifest.idOf(versions.get(i)).equals(targetId)) {
+                targetIdx = i;
+                break;
+            }
+        }
+        if (targetIdx < 0) {
+            return null;
+        }
+        for (int i = targetIdx; i >= 0; i--) {
+            Map<String, Object> v = versions.get(i);
+            if (!Manifest.basePartsOf(v).isEmpty()) {
+                return v;
+            }
+        }
+        return null;
     }
 
     /** Update the installed game from its current version to the target. */

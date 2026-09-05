@@ -163,6 +163,22 @@ public final class Updater {
         return problems;
     }
 
+    /**
+     * Deletes files inside gameDir that are not listed in the target
+     * version's files map (leftovers after rebuilding from a base archive).
+     */
+    public static void removeExtras(Path gameDir, Map<String, Object> files,
+                                    ProgressListener listener) throws IOException {
+        try (var walk = Files.walk(gameDir)) {
+            for (Path p : walk.filter(Files::isRegularFile).toList()) {
+                String rel = gameDir.relativize(p).toString().replace('\\', '/');
+                if (!files.containsKey(rel)) {
+                    Files.deleteIfExists(p);
+                }
+            }
+        }
+    }
+
     public static String sha256Hex(Path p) throws IOException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         try (InputStream in = Files.newInputStream(p)) {
