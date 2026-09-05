@@ -45,16 +45,21 @@ launcher/
 │   ├── SettingsDialog.java      # settings window (language, manifest URL, game folder)
 │   ├── Manifest.java            # typed view over the parsed manifest
 │   ├── ManifestClient.java      # manifest.json download (java.net.http) and parsing
+│   ├── Downloader.java          # downloads with progress and resume (HTTP Range)
+│   ├── Updater.java             # update package application, split-zip base
+│   │                            # extraction, SHA-256 verification
+│   ├── VersionManager.java      # install/update orchestration, local version state
 │   ├── GameRunner.java          # legends.exe launch
-│   ├── util/Json.java           # minimal JSON parser (no external dependencies)
-│   │   # planned:
-│   ├── Downloader.java          # downloads with progress and resume
-│   ├── Updater.java             # update package application, hash checks
-│   └── VersionManager.java      # installed versions, switching
+│   └── util/Json.java           # minimal JSON parser (no external dependencies)
 └── src/main/resources/rol/launcher/
     ├── strings.properties       # English (default)
     └── strings_ru.properties    # Russian
 ```
+
+The launcher is a **classpath application** (no module-info): third-party
+jars on the classpath just work, no module resolution headaches. The base
+archive is a regular ZIP split into byte volumes (`base.zip.001`, ...) —
+extraction needs only the JDK, no external archive libraries.
 
 ## Localization
 
@@ -71,9 +76,14 @@ or File → Settings → Language.
 
 On startup (and on "Check for updates") the launcher downloads the
 manifest from the configured raw URL, compares the installed version with
-`latest` and shows an update banner with the changelog. "Play" launches
+`latest` and shows an update banner with the changelog. "Update" downloads
+the package for the installed version (with resume), applies it (including
+deletions from `.rol-removed.txt`) and verifies the touched files against
+the manifest hashes. "Install game" downloads the split base volumes,
+extracts them and verifies the whole installation. "Play" launches
 `legends.exe` from the selected game folder (button enabled only when the
-folder contains the executable).
+folder contains the executable). Downloads are cached in
+`%APPDATA%\RoLauncher\cache`.
 
 Launcher state (installed version, paths) is stored locally in
 `%APPDATA%\RoLauncher\`.

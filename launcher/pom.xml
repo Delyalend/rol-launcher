@@ -29,7 +29,8 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>rol.launcher/rol.launcher.App</mainClass>
+                    <!-- classpath application (no module-info): module prefix would not work -->
+                    <mainClass>rol.launcher.App</mainClass>
                 </configuration>
             </plugin>
         </plugins>

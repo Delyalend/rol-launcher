@@ -45,6 +45,27 @@ public final class Manifest {
         return (List<String>) (List<?>) version.getOrDefault("changelog", List.of());
     }
 
+    /** Base archive volumes of a version: [{file, size, sha256}, ...], empty if none. */
+    @SuppressWarnings("unchecked")
+    public static List<Map<String, Object>> basePartsOf(Map<String, Object> version) {
+        Object base = version.get("base");
+        if (base == null) {
+            return List.of();
+        }
+        Object parts = ((Map<String, Object>) base).get("parts");
+        return parts == null ? List.of() : (List<Map<String, Object>>) (List<?>) parts;
+    }
+
+    /** Update package for upgrading to this version from the given one, or null. */
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> updateOf(Map<String, Object> version, String fromId) {
+        Object updates = version.get("updates_from");
+        if (updates == null) {
+            return null;
+        }
+        return (Map<String, Object>) ((Map<String, Object>) updates).get(fromId);
+    }
+
     public static String dateOf(Map<String, Object> version) {
         return (String) version.getOrDefault("date", "");
     }

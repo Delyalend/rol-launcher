@@ -11,6 +11,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextArea;
@@ -58,12 +59,17 @@ public class App extends Application {
     private Label updateLabel;
     private Label changelogCaption;
     private TextArea changelogArea;
+    private Button updateButton;
+    private Button installButton;
     private Button playButton;
+    private ProgressBar progressBar;
 
     // state
     private String latestVersionId;
     private List<String> latestChangelog = List.of();
     private boolean checking;
+    private boolean busy;
+    private Manifest lastManifest;
 
     @Override
     public void start(Stage stage) {
@@ -122,15 +128,27 @@ public class App extends Application {
         changelogArea.setWrapText(true);
         changelogArea.setPrefRowCount(5);
         changelogArea.setMaxWidth(480);
-        updateBox = new VBox(6, updateLabel, changelogCaption, changelogArea);
+        updateButton = new Button();
+        updateButton.setOnAction(e -> runUpdate());
+        updateBox = new VBox(6, updateLabel, changelogCaption, changelogArea, updateButton);
         updateBox.setVisible(false);
         updateBox.setManaged(false);
+
+        installButton = new Button();
+        installButton.setOnAction(e -> runInstall());
+        installButton.setVisible(false);
+        installButton.setManaged(false);
 
         playButton = new Button();
         playButton.setOnAction(e -> play());
 
+        progressBar = new ProgressBar(0);
+        progressBar.setMaxWidth(Double.MAX_VALUE);
+        progressBar.setVisible(false);
+        progressBar.setManaged(false);
+
         VBox center = new VBox(10, installedLabel, latestLabel, checkButton,
-                statusLabel, updateBox, playButton);
+                statusLabel, updateBox, installButton, playButton, progressBar);
         center.setPadding(new Insets(16));
 
         BorderPane root = new BorderPane();
@@ -188,12 +206,108 @@ public class App extends Application {
 
     private void onManifestLoaded(Manifest manifest) {
         checking = false;
+        lastManifest = manifest;
         latestVersionId = manifest.latest();
         Map<String, Object> latest = manifest.latestVersion();
         latestChangelog = latest == null ? List.of() : Manifest.changelogOf(latest);
         renderLatest();
         renderUpdateBox();
-        statusLabel.setText(updateBox.isVisible() ? "" : I18n.get("main.check.uptodate"));
+        renderInstallButton();
+        if (!busy) {
+            statusLabel.setText(updateBox.isVisible() ? "" : I18n.get("main.check.uptodate"));
+        }
+    }
+
+    private void renderInstallButton() {
+        boolean installable = lastManifest != null
+                && !Manifest.basePartsOf(lastManifest.latestVersion()).isEmpty()
+                && settings.getInstalledVersion().isBlank()
+                && GameRunner.findGameExe(settings.getGamePath()) == null;
+        installButton.setVisible(installable);
+        installButton.setManaged(installable);
+    }
+
+    // ---------- update and install ----------
+
+    private VersionManager.Progress uiProgress() {
+        return new VersionManager.Progress() {
+            @Override
+            public void stage(String stage) {
+                Platform.runLater(() -> statusLabel.setText(
+                        I18n.get("main.stage." + stage)));
+            }
+
+            @Override
+            public void progress(long done, long total) {
+                Platform.runLater(() -> {
+                    if (total <= 0) {
+                        progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+                    } else {
+                        progressBar.setProgress((double) done / total);
+                    }
+                });
+            }
+        };
+    }
+
+    private void runUpdate() {
+        if (busy || lastManifest == null || latestVersionId == null) {
+            return;
+        }
+        runTask(() -> new VersionManager(settings).updateTo(
+                lastManifest, latestVersionId, uiProgress()),
+                () -> statusLabel.setText(I18n.get("main.update.done", latestVersionId)));
+    }
+
+    private void runInstall() {
+        if (busy || lastManifest == null) {
+            return;
+        }
+        runTask(() -> new VersionManager(settings).installBase(lastManifest, uiProgress()),
+                () -> statusLabel.setText(I18n.get("main.install.done", latestVersionId)));
+    }
+
+    /** Runs a blocking task on a background thread with busy UI state. */
+    private void runTask(ThrowingRunnable task, Runnable onSuccess) {
+        busy = true;
+        setBusyUi(true);
+        Thread worker = new Thread(() -> {
+            try {
+                task.run();
+                Platform.runLater(() -> {
+                    setBusyUi(false);
+                    busy = false;
+                    renderInstalled();
+                    renderUpdateBox();
+                    renderInstallButton();
+                    onSuccess.run();
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    setBusyUi(false);
+                    busy = false;
+                    statusLabel.setText(I18n.get("main.task.error", e.getMessage()));
+                });
+            }
+        });
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private void setBusyUi(boolean busy) {
+        updateButton.setDisable(busy);
+        installButton.setDisable(busy);
+        checkButton.setDisable(busy);
+        playButton.setDisable(busy
+                || GameRunner.findGameExe(settings.getGamePath()) == null);
+        progressBar.setVisible(busy);
+        progressBar.setManaged(busy);
+        progressBar.setProgress(0);
+    }
+
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws Exception;
     }
 
     private void play() {
@@ -216,6 +330,7 @@ public class App extends Application {
     private void refreshState() {
         renderInstalled();
         playButton.setDisable(GameRunner.findGameExe(settings.getGamePath()) == null);
+        renderInstallButton();
         if (settings.getManifestUrl().isBlank()) {
             statusLabel.setText(I18n.get("main.noManifestUrl"));
         }
@@ -259,6 +374,8 @@ public class App extends Application {
         aboutItem.setText(I18n.get("menu.about"));
         checkButton.setText(I18n.get("main.check"));
         playButton.setText(I18n.get("main.play"));
+        updateButton.setText(I18n.get("main.update.button"));
+        installButton.setText(I18n.get("main.install.button"));
         changelogCaption.setText(I18n.get("main.changelog"));
         renderInstalled();
         renderLatest();

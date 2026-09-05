@@ -65,7 +65,7 @@ stored in git — they live in GitHub Releases as artifacts.
 - [x] `.big` archive repacking in Java (`devkit repack`, ported from Python)
 - [x] `devkit build-release` — update packages for every version + manifest update
 - [x] Launcher main screen: installed/latest version, update check, game launch
-- [ ] Launcher: download and apply updates (base volumes + update packages)
+- [x] Launcher: download with resume, install from base volumes, apply update packages
 - [ ] Launcher: version switching UI
 - [ ] First release published to GitHub Releases
 

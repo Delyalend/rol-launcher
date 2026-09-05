@@ -54,14 +54,16 @@ java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar snapshot "C:\path\to\game" rel
 
 ### 4. Base archive (rarely, on rebase)
 
-Full game copy split into 1900 MB volumes (GitHub limit — 2 GB per file):
+Full game copy as a ZIP split into 1900 MB byte volumes (GitHub limit —
+2 GB per file; the launcher concatenates the volumes and extracts with the
+JDK, no 7z needed):
 
 ```
-7z a -t7z -v1900m base-v0.2.0.7z "C:\path\to\game\*"
+7z a -tzip -v1900m base-v0.2.0.zip "C:\path\to\game\*"
 ```
 
-Produces `base-v0.2.0.7z.001`, `.002`… Attach them to the version via
-`--base "release\base-v0.2.0.7z.001,release\base-v0.2.0.7z.002"`.
+Produces `base-v0.2.0.zip.001`, `.002`… Attach them to the version via
+`--base "release\base-v0.2.0.zip.001,release\base-v0.2.0.zip.002"`.
 
 ### 5. Publishing
 

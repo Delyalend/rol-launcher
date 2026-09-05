@@ -4,11 +4,15 @@
 
 The server stores three things:
 
-1. **Base archive** — a full copy of the game, split into 7z volumes
-   (GitHub limit: 2 GB per file; our game is ~2.9 GB → two volumes of ~1.5 GB).
-   Needed only for the first install, updated rarely.
+1. **Base archive** — a full copy of the game as a regular ZIP split into
+   byte volumes (`base.zip.001`, `base.zip.002`, ...; GitHub limit: 2 GB per
+   file; our game is ~2.9 GB → two volumes of ~1.5 GB). Concatenating the
+   volumes in order yields a valid zip, so the launcher extracts it with the
+   JDK only — no external archive libraries. Needed only for the first
+   install, updated rarely.
 2. **Update packages** — `update-vA-vB.zip` containing *only the changed*
-   files (the folder structure of the game is preserved inside). Small.
+   files (the folder structure of the game is preserved inside) plus a
+   special `.rol-removed.txt` with the files to delete. Small.
 3. **Manifest** — `releases/manifest.json` in the repository. Describes all
    versions: date, changelog, base volumes, update-package chains and SHA-256
    of every installed game file for integrity checks.
@@ -32,7 +36,7 @@ the manifest — corrupted/incomplete files are re-downloaded.
 The GitHub API has a hard limit: 60 requests per hour without a token —
 launchers of several players would hit it quickly. `manifest.json` lives in
 the repository and is served via a raw link (`raw.githubusercontent.com`)
-without such limits, CDN-cached. Release files (`*.7z`, `*.zip`) are also
+without such limits, CDN-cached. Release files (`*.zip*` volumes, packages) are also
 served via `objects.githubusercontent.com` without practical download caps.
 
 ## Version switching
@@ -107,9 +111,15 @@ step a simple "download and run the installer" flow is fine.
 ```
 1. Read target version from manifest.json
 2. Download update package for the installed version
+   (resume support: .part file + HTTP Range)
 3. Verify package SHA-256 from updates_from entry
 4. Extract package over the game folder
 5. Delete files listed in .rol-removed.txt
-6. Verify SHA-256 of every file against the target version's files map
+6. Verify SHA-256 of the touched files against the target version's files map
 7. Record the new installed version locally
 ```
+
+Fresh install: download the base volumes (with resume), concatenate and
+extract them into the game folder, verify every file from the manifest,
+record the version. Downloads are cached in `%APPDATA%\RoLauncher\cache`
+and reused across versions.

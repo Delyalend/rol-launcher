@@ -10,8 +10,8 @@
       ],
       "base": {
         "parts": [
-          { "file": "base-v0.1.0.7z.001", "size": 1992294400, "sha256": "TODO-хэш-тома-1" },
-          { "file": "base-v0.1.0.7z.002", "size": 500000000, "sha256": "TODO-хэш-тома-2" }
+          { "file": "base-v0.1.0.zip.001", "size": 1992294400, "sha256": "TODO-хэш-тома-1" },
+          { "file": "base-v0.1.0.zip.002", "size": 500000000, "sha256": "TODO-хэш-тома-2" }
         ]
       },
       "updates_from": {},
