@@ -64,7 +64,7 @@ public final class VersionManager {
         List<Path> volumes = new ArrayList<>();
         for (Map<String, Object> part : parts) {
             String file = (String) part.get("file");
-            Path local = Downloader.download(fileUrl(file), cacheDir(), file,
+            Path local = Downloader.download(entryUrl(part, file), cacheDir(), file,
                     progress::progress);
             verifyPart(local, part);
             volumes.add(local);
@@ -122,7 +122,7 @@ public final class VersionManager {
         List<Path> volumes = new ArrayList<>();
         for (Map<String, Object> part : Manifest.basePartsOf(baseVersion)) {
             String file = (String) part.get("file");
-            Path local = Downloader.download(fileUrl(file), cacheDir(), file, progress::progress);
+            Path local = Downloader.download(entryUrl(part, file), cacheDir(), file, progress::progress);
             verifyPart(local, part);
             volumes.add(local);
         }
@@ -138,7 +138,7 @@ public final class VersionManager {
             }
             progress.stage(STAGE_DOWNLOAD);
             String file = (String) upd.get("file");
-            Path pkg = Downloader.download(fileUrl(file), cacheDir(), file, progress::progress);
+            Path pkg = Downloader.download(entryUrl(upd, file), cacheDir(), file, progress::progress);
             verifyPart(pkg, upd);
             progress.stage(STAGE_APPLY);
             Updater.applyPackage(pkg, gameDir, progress::progress);
@@ -198,7 +198,7 @@ public final class VersionManager {
 
         progress.stage(STAGE_DOWNLOAD);
         String file = (String) upd.get("file");
-        Path pkg = Downloader.download(fileUrl(file), cacheDir(), file, progress::progress);
+        Path pkg = Downloader.download(entryUrl(upd, file), cacheDir(), file, progress::progress);
         verifyPart(pkg, upd);
 
         Path gameDir = Path.of(settings.getGamePath());
@@ -227,6 +227,12 @@ public final class VersionManager {
         if (!Updater.sha256Hex(local).equals(wantHash)) {
             throw new IOException("Checksum mismatch for " + local.getFileName());
         }
+    }
+
+    /** Download URL: the explicit "url" field wins, otherwise next-to-manifest. */
+    private String entryUrl(Map<String, Object> entry, String file) {
+        Object url = entry.get("url");
+        return (url != null && !url.toString().isBlank()) ? url.toString() : fileUrl(file);
     }
 
     /** Files live next to the manifest: manifest URL base + file name. */

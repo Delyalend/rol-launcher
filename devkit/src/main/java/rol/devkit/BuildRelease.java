@@ -49,6 +49,7 @@ final class BuildRelease {
         String outDir = "release";
         int recent = -1;
         String baseCsv = null;
+        String baseUrl = null;
 
         for (int i = 0; i < args.size(); i++) {
             String a = args.get(i);
@@ -59,6 +60,7 @@ final class BuildRelease {
                 case "--out" -> outDir = args.get(++i);
                 case "--recent" -> recent = Integer.parseInt(args.get(++i));
                 case "--base" -> baseCsv = args.get(++i);
+                case "--base-url" -> baseUrl = args.get(++i);
                 default -> {
                     if (folder == null && !a.startsWith("--")) folder = a;
                     else throw new IllegalArgumentException("unknown argument: " + a);
@@ -131,6 +133,9 @@ final class BuildRelease {
             upd.put("file", zipName);
             upd.put("size", (long) zipBytes.length);
             upd.put("sha256", sha256Hex(zipBytes));
+            if (baseUrl != null) {
+                upd.put("url", baseUrl + "/" + zipName);
+            }
             updatesFrom.put(oldId, upd);
         }
 
@@ -140,7 +145,7 @@ final class BuildRelease {
         entry.put("date", Instant.now().toString());
         entry.put("changelog", changelog);
         if (baseCsv != null) {
-            entry.put("base", baseParts(baseCsv));
+            entry.put("base", baseParts(baseCsv, baseUrl));
         }
         entry.put("updates_from", updatesFrom);
         entry.put("files", newFiles);
@@ -217,7 +222,7 @@ final class BuildRelease {
         zip.closeEntry();
     }
 
-    private static Map<String, Object> baseParts(String csv)
+    private static Map<String, Object> baseParts(String csv, String baseUrl)
             throws IOException, NoSuchAlgorithmException {
         List<Map<String, Object>> parts = new ArrayList<>();
         for (String part : csv.split(",")) {
@@ -231,6 +236,9 @@ final class BuildRelease {
             m.put("file", p.getFileName().toString());
             m.put("size", Files.size(p));
             m.put("sha256", sha256Hex(Files.readAllBytes(p)));
+            if (baseUrl != null) {
+                m.put("url", baseUrl + "/" + p.getFileName());
+            }
             parts.add(m);
         }
         if (parts.isEmpty()) {

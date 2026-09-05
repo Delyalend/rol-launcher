@@ -2,17 +2,19 @@
   "schema_version": 1,
   "versions": [ {
     "id": "v0.1.0",
-    "date": "2026-09-05T21:39:21.873625200Z",
+    "date": "2026-09-05T22:13:40.052199100Z",
     "changelog": [ "First release: the game as-is from the local install", "Launcher pipeline: base archive, version manifest, update system" ],
     "base": {
       "parts": [ {
         "file": "base-v0.1.0.zip.001",
         "size": 1992294400,
-        "sha256": "8996e3abc9925213ea4a1fa2acaf9f04e961daccaf228f7720f0ae882dffff3d"
+        "sha256": "8996e3abc9925213ea4a1fa2acaf9f04e961daccaf228f7720f0ae882dffff3d",
+        "url": "https://github.com/Delyalend/rol-launcher/releases/download/v0.1.0/base-v0.1.0.zip.001"
       }, {
         "file": "base-v0.1.0.zip.002",
         "size": 1098604663,
-        "sha256": "7538590e85cc2fa0dd4836a7fe623f9d3f5500c6d0eed315144477529a21da49"
+        "sha256": "7538590e85cc2fa0dd4836a7fe623f9d3f5500c6d0eed315144477529a21da49",
+        "url": "https://github.com/Delyalend/rol-launcher/releases/download/v0.1.0/base-v0.1.0.zip.002"
       } ]
     },
     "updates_from": {},
