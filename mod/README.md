@@ -110,6 +110,11 @@ Fire Shard upgrades referenced `Glass Prison Shard`; those four `CHAIN`
 values were changed to `None`, while the Fire Shard upgrades themselves were
 kept available.
 
+Abilities that create buildings also need their referenced building records in
+`buildingrules.xml`. Carlini's Defensive Placement abilities use `Defense
+Gun`, `Defense Gun 3` and `Defense Gun 4`; all three base building records
+must be present in every multiplayer archive layer.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
