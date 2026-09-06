@@ -9,6 +9,25 @@ Client application for installing, updating and launching the game.
 - Windows packaging: `jlink` + `jpackage` → native `.exe`
   with a trimmed JRE (players do not need Java installed)
 
+### Packaging (native exe)
+
+The runtime image MUST include `jdk.crypto.ec`, otherwise the launcher
+cannot do TLS with GitHub ("Received fatal alert: handshake_failure").
+The javafx-maven-plugin `jlink` goal does not add it, so the image is
+built with jlink directly:
+
+```
+mvn -q -pl launcher -am package
+jlink --module-path "<javafx -win jars>;launcher/target/launcher-<ver>.jar" \
+      --add-modules rol.launcher,jdk.crypto.ec,jdk.crypto.cryptoki \
+      --output launcher/target/image --launcher RoLauncher=rol.launcher/rol.launcher.App \
+      --strip-debug --no-header-files --no-man-pages
+jpackage --type app-image --name RoLauncher --runtime-image launcher/target/image \
+      --module rol.launcher/rol.launcher.App --dest launcher/target/jpackage
+```
+
+The result: `launcher/target/jpackage/RoLauncher/RoLauncher.exe` (portable).
+
 ## Features (by screen)
 
 1. **Main screen**
