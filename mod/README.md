@@ -133,6 +133,17 @@ For Venza's Flyer Upgrade abilities, the required bonus records are
 `Flyer Upgrade Bonus`, `Flyer Upgrade Bonus 3` and `Flyer Upgrade Bonus 4` in
 `techrules.xml`.
 
+Venza's Signal Tank Blimp abilities similarly require the `Tank Blimp` unit
+record in `unitrules.xml`.
+
+The public tooling situation is limited: the original BHG runtime compiler is
+not available, but the community has preserved the official RoL modding guides
+and BIG tools. The Rise of Legends guide pack includes the BHG Scripting Kit,
+Modpack and BIG Archiver. For `.bhs` scripts, the modern Big Huge Script
+Language Server for VS Code provides syntax and semantic diagnostics intended
+to match the game compiler. Neither replaces the game's runtime validation of
+cross-file XML keys, so this project still needs its own dependency preflight.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
