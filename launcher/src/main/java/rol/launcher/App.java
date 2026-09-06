@@ -78,6 +78,13 @@ public class App extends Application {
     @Override
     public void start(Stage stage) {
         this.stage = stage;
+        try {
+            if (SwitchJournal.recover(Path.of(settings.getGamePath()).toAbsolutePath().normalize())) {
+                Log.info("Recovered an unfinished version switch transaction");
+            }
+        } catch (Exception e) {
+            Log.error("Failed to recover version switch transaction", e);
+        }
         I18n.setLocale(settings.getLanguage());
         Log.info("Launcher started, version-check URL: " + settings.getManifestUrl());
         try {

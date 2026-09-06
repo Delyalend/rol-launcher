@@ -64,5 +64,44 @@ final class SwitchJournal {
         Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
+    /**
+     * Best-effort startup recovery. Before the live directory is moved, the
+     * old installation is untouched; after OLD_MOVED/NEW_MOVED, restore the
+     * backup rather than guessing whether the staged target was complete.
+     */
+    static boolean recover(Path game) throws IOException {
+        SwitchJournal journal = load(game);
+        if (journal == null) return false;
+        switch (journal.state) {
+            case PREPARING -> {
+                deleteTree(journal.staging);
+                journal.delete();
+            }
+            case OLD_MOVED, NEW_MOVED -> {
+                if (Files.exists(journal.game)) deleteTree(journal.game);
+                if (Files.exists(journal.backup)) {
+                    Files.move(journal.backup, journal.game, StandardCopyOption.ATOMIC_MOVE);
+                }
+                deleteTree(journal.staging);
+                journal.delete();
+            }
+            case COMMITTED -> {
+                deleteTree(journal.backup);
+                deleteTree(journal.staging);
+                journal.delete();
+            }
+        }
+        return true;
+    }
+
+    private static void deleteTree(Path root) throws IOException {
+        if (!Files.exists(root)) return;
+        try (var walk = Files.walk(root)) {
+            for (Path p : walk.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(p);
+            }
+        }
+    }
+
     void delete() throws IOException { Files.deleteIfExists(file); }
 }
