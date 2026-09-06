@@ -51,6 +51,18 @@ public final class Main {
                     if (args.length < 2) { usage(); return; }
                     BaseBuilder.run(List.of(args).subList(1, args.length));
                 }
+                case "patch" -> {
+                    if (args.length < 6) { usage(); return; }
+                    // patch <game_dir> <pristine_dir> <big> <entry> <file> [backup_dir]
+                    java.nio.file.Path game = java.nio.file.Path.of(args[1]);
+                    java.nio.file.Path pristine = java.nio.file.Path.of(args[2]);
+                    java.nio.file.Path backup = args.length > 6
+                            ? java.nio.file.Path.of(args[6])
+                            : game.getParent().resolve("_bigs_backup_original");
+                    java.nio.file.Files.createDirectories(backup);
+                    byte[] content = java.nio.file.Files.readAllBytes(java.nio.file.Path.of(args[5]));
+                    Repack.patch(pristine, game, backup, args[3], args[4], content);
+                }
                 default -> usage();
             }
         } catch (Exception e) {

@@ -1,0 +1,58 @@
+<!-- File: gamecamera.xml -->
+<!-- Summary: 
+ File used to store the <LINK>GameCamera</LINK>'s various options as 
+ edited by the <LINK>GameCameraModifier</LINK>. 
+-->
+<ROOT>
+  <SCHEMA>
+    <RANGE name="delta_factor" min="0.0" max="100.0" type="float"/>
+    <RANGE name="scan_width" min="0" max="3" type="int"/>
+    <RANGE name="scan_height" min="0" max="5" type="int"/>
+    <RANGE name="scan_offset" min="-3" max="3" type="int"/>
+    <RANGE name="search_delta_range" min=".01" max="10.0" type="float"/>
+    <DATA name="editor_delta_factor" range="delta_factor" path="EDITOR"/>
+    <DATA name="zoom_transition_time" path="TRANSITION_TIMES"/>
+    <DATA name="pan_transition_time" path="TRANSITION_TIMES"/>
+    <DATA name="z_transition_time" path="TRANSITION_TIMES"/>
+    <DATA name="tilt_transition_time" path="TRANSITION_TIMES"/>
+    <DATA name="spin_transition_time" path="TRANSITION_TIMES"/>
+    <DATA name="smart_delta_factor" range="delta_factor" path="SMART"/>
+    <DATA name="start_tilt_angle"/>
+    <DATA name="start_zoom_dist"/>
+    <DATA name="over_terrain_height"/>
+    <DATA name="height_correction"/>
+    <DATA name="tilt_correction"/>
+    <DATA name="search_angle_delta" range="search_delta_range"/>
+    <DATA name="tilt_relax_factor"/>
+    <DATA name="regulation_num_zoom_levels" path="REGULATION"/>
+    <DATA name="regulation_zoom_in_dist" path="REGULATION"/>
+    <DATA name="regulation_zoom_in_pan_factor" path="REGULATION"/>
+    <DATA name="regulation_zoom_out_dist" path="REGULATION"/>
+    <DATA name="regulation_zoom_out_pan_factor" path="REGULATION"/>
+    <DATA name="regulation_extended_zoom_out_dist" path="REGULATION"/>
+    <DATA name="regulation_extended_zoom_out_tilt_angle" path="REGULATION"/>
+    <DATA name="current_min_tilt" path="REGULATION"/>
+    <DATA name="current_max_tilt" path="REGULATION"/>
+    <DATA name="keyboard_spin_tilt_rate" path="KEYBOARD"/>
+    <DATA name="average_scan_width" range="scan_width" path="HEIGHTSCAN"/>
+    <DATA name="average_scan_height" range="scan_height" path="HEIGHTSCAN"/>
+    <DATA name="average_scan_offset" range="scan_offset" path="HEIGHTSCAN"/>
+    <DATA name="show_scan_area" path="HEIGHTSCAN"/>
+    <DATA name="smooth_camera_pan" path="SMOOTHPAN"/>
+    <DATA name="min_smooth_speed" path="SMOOTHPAN"/>
+    <DATA name="max_smooth_speed" path="SMOOTHPAN"/>
+    <DATA name="camera_return" path="CAMERARETURN"/>
+    <DATA name="camera_return_speed" path="CAMERARETURN"/>
+    <DATA name="auto_rotate_speed" path="CAMERARETURN"/>
+    <DATA name="ui_ratio"/>
+  </SCHEMA>
+  <DATA tilt_return_delay="0" start_tilt_angle="45." start_zoom_dist="12000." over_terrain_height="2000." height_correction="1" tilt_correction="0" search_angle_delta="1." tilt_relax_factor="10." ui_ratio="0." big_building_grid_bump="-.00132704" zoom_return="0" zoom_return_delay="15000" zoom_return_speed="15." max_panning_distance="3000" tilt_return_speed=".5" return_delay_time="2000" return_speed="1." smooth_time_to_accel="2000">
+    <SMOOTHPAN smooth_time_to_accel="6000" smooth_camera_pan="0" min_smooth_speed="100." max_smooth_speed="400."/>
+    <CAMERARETURN return_delay_time="750" return_speed="7." camera_return="0" auto_rotate_speed=".5"/>
+    <EDITOR editor_delta_factor="100."/>
+    <TRANSITION_TIMES zoom_transition_time="500" pan_transition_time="100" z_transition_time="100" tilt_transition_time="100" spin_transition_time="100"/>
+    <REGULATION regulation_num_zoom_levels="8" regulation_zoom_in_dist="2000." regulation_zoom_in_pan_factor="250." regulation_zoom_out_dist="20000." regulation_zoom_out_pan_factor="450." regulation_extended_zoom_out_dist="40000." regulation_extended_zoom_out_tilt_angle="65." current_min_tilt="30." current_max_tilt="85."/>
+    <KEYBOARD keyboard_spin_tilt_rate="15."/>
+    <HEIGHTSCAN average_scan_width="2" average_scan_height="3" average_scan_offset="-1" show_scan_area="0"/>
+  </DATA>
+</ROOT>

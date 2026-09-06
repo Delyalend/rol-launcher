@@ -292,6 +292,59 @@ final class Repack {
         return out.toByteArray();
     }
 
+    /**
+     * Replaces one text entry in a big file (all three copies: BIGS,
+     * BIGS\\patch8, BIGS\\patches\\patch8) with the given content.
+     * Refuses to touch compiled (bxml) entries.
+     */
+    public static void patch(Path pristineDir, Path gameDir, Path backup,
+                             String bigName, String entryName, byte[] content)
+            throws IOException {
+        String[][] targets = {
+                {"BIGS", bigName},
+                {"BIGS/patch8", bigName},
+                {"BIGS/patches/patch8", bigName},
+        };
+        for (String[] t : targets) {
+            Path src = pristineDir.resolve(t[0]).resolve(t[1]);
+            Path dst = gameDir.resolve(t[0]).resolve(t[1]);
+            if (!Files.exists(src)) {
+                System.out.println("SKIP (no source): " + src);
+                continue;
+            }
+            byte[] data = Files.readAllBytes(src);
+            ParseResult parsed = parse(data);
+            if (parsed == null) {
+                throw new IOException("cannot parse " + src);
+            }
+            Files.copy(src, backup.resolve("orig_" + src.getFileName()),
+                    StandardCopyOption.REPLACE_EXISTING);
+            String key = norm(entryName);
+            boolean replaced = false;
+            for (Entry e : parsed.entries) {
+                e.keepRaw = true; // untouched entries keep their original bytes
+                if (norm(e.name).equals(key)) {
+                    if (e.payload != null && e.payload.length >= 4 && e.payload[0] == 1) {
+                        throw new IOException("refusing to patch compiled entry: " + e.name);
+                    }
+                    e.payload = content;
+                    e.raw = null;
+                    e.size = content.length;
+                    e.keepRaw = false;
+                    replaced = true;
+                }
+            }
+            if (!replaced) {
+                throw new IOException("entry not found: " + entryName + " in " + src);
+            }
+            byte[] out = build(data, parsed.block2Start, parsed.entries);
+            Files.createDirectories(dst.getParent());
+            Files.write(dst, out);
+            ParseResult check = parse(out);
+            System.out.println("patched " + dst + " (" + (check != null ? "OK" : "FAIL") + ")");
+        }
+    }
+
     // ---------- helpers ----------
 
     private static void collectLoose(Path dataDir, Path gameRoot, Map<String, Path> modFiles)
