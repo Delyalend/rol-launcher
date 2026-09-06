@@ -34,6 +34,8 @@ https://raw.githubusercontent.com/Delyalend/rol-launcher/main/releases/manifest.
 - `diff` — compares two snapshots.
 - `repack` — embeds mod XML files into Rise of Legends `.big` archives.
 - `patch` — replaces one text entry in the three relevant `.big` copies.
+- `patch-archive` — replaces one text entry in a specific `.big` archive;
+  useful when a game installation contains additional patch-layer copies.
 - `build-base` — streams a complete game folder into split ZIP volumes:
   `base.zip.001`, `.002`, etc. Default volume size is 1900 MB.
 - `build-release` — scans a new game version, builds update packages from

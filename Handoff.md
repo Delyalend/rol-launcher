@@ -98,6 +98,7 @@ snapshot <folder> [file.json]
 diff <old.json> <new.json>
 repack <game_dir> <pristine_dir> [backup_dir]
 patch <game_dir> <pristine_dir> <big_name> <entry_name> <replacement_file> [backup_dir]
+patch-archive <source.big> <dest.big> <entry_name> <replacement_file> [backup.big]
 build-base <game_folder> [--out dir] [--name base.zip] [--volume 1900m]
 build-release <folder> --version vX.Y.Z [--changelog file]
               [--manifest file] [--out dir] [--recent N]

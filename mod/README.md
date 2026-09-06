@@ -35,6 +35,45 @@ mod/
 - The game itself rewrites `mod_data.big` on startup (updates its internal
   bookkeeping) — that is normal and does not affect integrity.
 
+## Enabling CTW heroes in Skirmish/LAN
+
+Campaign heroes are not enabled for regular Skirmish merely by adding
+`HERO3`, `HERO4`, etc. to `Data/tribes/*.xml`. The game discovers regular
+heroes from their unit definitions in `unitrules.xml`, and each definition
+must have the faction bitmask set on the base unit and all of its level
+variants:
+
+```text
+Alin  = 0001
+Cuotl = 0100
+Vinci = 1000
+```
+
+`0000` means that the unit belongs to no faction and it will not appear in
+Skirmish, even when the XML parses correctly. For a CTW hero, copy the unit
+definitions from `Data/tribes/ctw/CTWHeroes.xml` into `Data/unitrules.xml`,
+remove empty duplicate `CODETAG` elements where required, and set the
+correct `TRIBE_MASK` on every level (normally five definitions per hero).
+
+The archive step is important. The installation contains multiple patch
+layers, not just the three common archives. Apply the resulting
+`Data/unitrules.xml` to every `mod_data.big` and every
+`multiplayer_data.big` under `BIGS/`, `BIGS/patch8/`, and
+`BIGS/patches/*/`. Always make a backup before patching and verify by
+extracting one archive from an older patch layer as well as the newest one.
+
+The tested safe hero set is:
+
+- Vinci: Battaglion, Carlini, Distruzio, Venza;
+- Alin: Andromolek, Arri, Belisari;
+- Cuotl: Kakoolha, Yontash.
+
+Do not import the full campaign craft/spell section blindly. Campaign-only
+spell chains can reference unavailable entries and cause startup errors such
+as `Glass Prison Shard ... in SPELLS`. Keep the hero unit definitions and
+faction masks separate from campaign spell migration, which must be tested
+hero by hero.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
