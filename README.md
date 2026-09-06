@@ -71,7 +71,8 @@ stored in git — they live in GitHub Releases as artifacts.
 - [x] First game release (`v0.1.0`) published to GitHub Releases
 - [x] First camera update (`v0.2.0`) published and installed through the launcher
 - [x] First portable launcher release (`launcher-v0.1.0`) published
-- [ ] Publish next launcher release (`launcher-v0.1.1`) with the latest hardening changes
+- [x] Launcher hardening release (`launcher-v0.1.1`) published
+- [x] Modern UI and existing-folder detection release (`launcher-v0.1.2`) published
 
 ## Build
 
