@@ -157,6 +157,11 @@ Andromolek's Dark Well abilities require `Dark Well Bonus` and
 Kakoolha's Heretic Trample ability requires `Heretic Trample Bonus` and
 `Heretic Trample Bonus 4` in `techrules.xml`.
 
+`Reincarnation` for Yontash must not graft onto Giacomo's `Augmentation 4`
+branch. Keep the ability itself, but set its `GRAFT` to `none`; otherwise the
+runtime reports an invalid upgrade/graft chain involving `Reincarnation` and
+`Heal Grenade`.
+
 The public tooling situation is limited: the original BHG runtime compiler is
 not available, but the community has preserved the official RoL modding guides
 and BIG tools. The Rise of Legends guide pack includes the BHG Scripting Kit,
