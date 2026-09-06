@@ -82,12 +82,12 @@ does not contain the campaign-only ability entries, so a selected hero can
 appear in the hero list with an empty ability panel.
 
 For the enabled set, copy only the entries whose `WHERE` field belongs to the
-selected heroes into the multiplayer craftrules data. Translate these legacy
-campaign labels to the current unit names:
+selected heroes into the multiplayer craftrules data. The `WHERE` value must
+remain the internal `TYPENAME` key, not the display name from the `NAME` field:
 
-- `Adromolek, the Dark Prince` → `Andromolek, Vizier of Al-Rukh`;
-- `Carlini, Sergeant of Miana` → `Carlini, General of Miana`;
-- `Venza, Lieutenant of Miana` → `Venza, Commander of Pirata`.
+- display `Andromolek, Vizier of Al-Rukh` → `WHERE=Adromolek, the Dark Prince`;
+- display `Carlini, General of Miana` → `WHERE=Carlini, Sergeant of Miana`;
+- display `Venza, Commander of Pirata` → `WHERE=Venza, Lieutenant of Miana`.
 
 The tested patch contains 112 ability entries for Andromolek, Arri, Belisari,
 Battaglion, Carlini, Distruzio, Venza, Kakoolha and Yontash. Do not copy the
