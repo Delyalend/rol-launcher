@@ -120,6 +120,11 @@ Carlini's Scope uses `Scope Bonus`, `Scope Bonus 3` and `Scope Bonus 4`; these
 records belong in `techrules.xml` and must also be copied to every multiplayer
 archive layer.
 
+If a craft `DATA0` value names a unit effect, the corresponding unit records
+are required in `unitrules.xml`. Carlini's Heroic Charge uses
+`Carlini Heroic Charge` and `Carlini Heroic Charge 4`; both records must be
+copied along with the hero unit definitions.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
