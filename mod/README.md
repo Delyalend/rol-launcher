@@ -151,6 +151,9 @@ Belisari's Desert Strength abilities require
 `Desert Strength Bonus`, `Desert Strength Bonus 3` and
 `Desert Strength Bonus 4` in `techrules.xml`.
 
+Andromolek's Dark Well abilities require `Dark Well Bonus` and
+`Dark Well Bonus 2` in `techrules.xml`.
+
 The public tooling situation is limited: the original BHG runtime compiler is
 not available, but the community has preserved the official RoL modding guides
 and BIG tools. The Rise of Legends guide pack includes the BHG Scripting Kit,
