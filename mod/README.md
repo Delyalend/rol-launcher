@@ -154,6 +154,9 @@ Belisari's Desert Strength abilities require
 Andromolek's Dark Well abilities require `Dark Well Bonus` and
 `Dark Well Bonus 2` in `techrules.xml`.
 
+Kakoolha's Heretic Trample ability requires `Heretic Trample Bonus` and
+`Heretic Trample Bonus 4` in `techrules.xml`.
+
 The public tooling situation is limited: the original BHG runtime compiler is
 not available, but the community has preserved the official RoL modding guides
 and BIG tools. The Rise of Legends guide pack includes the BHG Scripting Kit,
