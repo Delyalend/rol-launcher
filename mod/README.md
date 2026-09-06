@@ -104,6 +104,12 @@ After merging, validate that every non-empty `reference_name` resolves to a
 `TYPENAME` in the same craftrules file. Otherwise the game reports an
 `Invalid keyphrase ... in SPELLS` error while loading the rules.
 
+The same check applies to `CHAIN`, `FROM` and `GRAFT`: campaign-only chains
+must not be left in multiplayer abilities. In the tested set, Andromolek's
+Fire Shard upgrades referenced `Glass Prison Shard`; those four `CHAIN`
+values were changed to `None`, while the Fire Shard upgrades themselves were
+kept available.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
