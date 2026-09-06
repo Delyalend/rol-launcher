@@ -332,11 +332,13 @@ final class Repack {
         }
         String key = norm(entryName);
         boolean replaced = false;
+        boolean compiledMatch = false;
         for (Entry e : parsed.entries) {
             e.keepRaw = true; // untouched entries keep their original bytes
             if (norm(e.name).equals(key)) {
                 if (e.payload != null && e.payload.length >= 4 && e.payload[0] == 1) {
-                    throw new IOException("refusing to patch compiled entry: " + e.name);
+                    compiledMatch = true;
+                    continue;
                 }
                 e.payload = content;
                 e.raw = null;
@@ -346,13 +348,24 @@ final class Repack {
             }
         }
         if (!replaced) {
-            throw new IOException("entry not found: " + entryName + " in " + src);
+            if (!compiledMatch) {
+                throw new IOException("entry not found: " + entryName + " in " + src);
+            }
+            String archName = "." + '\\' + norm(entryName).replace('/', '\\');
+            Entry added = new Entry(archName, "", mtimeNow(), content.length, null, content);
+            added.keepRaw = false;
+            parsed.entries.add(added);
+            replaced = true;
         }
         byte[] out = build(data, parsed.block2Start, parsed.entries);
         Files.createDirectories(dst.toAbsolutePath().normalize().getParent());
         Files.write(dst, out);
         ParseResult check = parse(out);
         System.out.println("patched " + dst + " (" + (check != null ? "OK" : "FAIL") + ")");
+    }
+
+    private static long mtimeNow() {
+        return System.currentTimeMillis() / 1000L;
     }
 
     // ---------- helpers ----------
