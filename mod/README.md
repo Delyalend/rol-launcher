@@ -74,6 +74,28 @@ as `Glass Prison Shard ... in SPELLS`. Keep the hero unit definitions and
 faction masks separate from campaign spell migration, which must be tested
 hero by hero.
 
+### Enabling hero abilities
+
+The hero unit definitions alone are not enough: the ability tree is read from
+matching entries in `Data/craftrules.xml`. The multiplayer archive normally
+does not contain the campaign-only ability entries, so a selected hero can
+appear in the hero list with an empty ability panel.
+
+For the enabled set, copy only the entries whose `WHERE` field belongs to the
+selected heroes into the multiplayer craftrules data. Translate these legacy
+campaign labels to the current unit names:
+
+- `Adromolek, the Dark Prince` → `Andromolek, Vizier of Al-Rukh`;
+- `Carlini, Sergeant of Miana` → `Carlini, General of Miana`;
+- `Venza, Lieutenant of Miana` → `Venza, Commander of Pirata`.
+
+The tested patch contains 112 ability entries for Andromolek, Arri, Belisari,
+Battaglion, Carlini, Distruzio, Venza, Kakoolha and Yontash. Do not copy the
+entire campaign craftrules file: that imports excluded campaign variants and
+can reintroduce invalid campaign-only spell references. Apply the same
+craftrules replacement to every `mod_data.big` and `multiplayer_data.big`
+layer, including `BIGS/patches/*`.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
