@@ -125,7 +125,8 @@ folder contains the executable). Downloads are cached in
 All errors (with stack traces) and key events are written to
 `%APPDATA%\RoLauncher\launcher.log` (rotates to `.old` at 1 MB).
 The status line on the main screen is selectable — error text can be
-copied. Help → Open log file opens the log directly; the About dialog
+copied. Help → Open log file opens the log directly; Help → Troubleshooting
+provides recovery steps for common problems such as a locked game folder; the About dialog
 shows the log path.
 
 Launcher state (installed version, paths) is stored locally in

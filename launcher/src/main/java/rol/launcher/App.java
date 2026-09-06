@@ -25,6 +25,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -62,6 +63,7 @@ public class App extends Application {
     private Menu helpMenu;
     private MenuItem aboutItem;
     private MenuItem logItem;
+    private MenuItem troubleshootingItem;
     // main view
     private Label installedLabel;
     private Label latestLabel;
@@ -154,8 +156,10 @@ public class App extends Application {
         aboutItem.setOnAction(e -> showAbout());
         MenuItem openLogItem = new MenuItem();
         openLogItem.setOnAction(e -> openLog());
+        troubleshootingItem = new MenuItem();
+        troubleshootingItem.setOnAction(e -> showTroubleshooting());
         helpMenu = new Menu();
-        helpMenu.getItems().addAll(openLogItem, new SeparatorMenuItem(), aboutItem);
+        helpMenu.getItems().addAll(troubleshootingItem, openLogItem, new SeparatorMenuItem(), aboutItem);
         logItem = openLogItem;
 
         menuBar = new MenuBar(fileMenu, languageMenu, versionsMenu, helpMenu);
@@ -488,8 +492,13 @@ public class App extends Application {
                 Platform.runLater(() -> {
                     setBusyUi(false);
                     busy = false;
-                    statusLabel.setText(I18n.get("main.task.error", e.getMessage())
-                            + " - " + I18n.get("main.error.hint", Log.file()));
+                    if (isFolderMoveAccessDenied(e)) {
+                        statusLabel.setText(I18n.get("main.task.rename.error"));
+                        showRenameTroubleshooting();
+                    } else {
+                        statusLabel.setText(I18n.get("main.task.error", e.getMessage())
+                                + " - " + I18n.get("main.error.hint", Log.file()));
+                    }
                 });
             }
         });
@@ -544,6 +553,39 @@ public class App extends Application {
             Log.error("Failed to open the log file", e);
             statusLabel.setText(I18n.get("main.log.open.error", e.getMessage()));
         }
+    }
+
+    private void showTroubleshooting() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.initOwner(stage);
+        var css = getClass().getResource("/rol/launcher/launcher.css");
+        if (css != null) alert.getDialogPane().getStylesheets().add(css.toExternalForm());
+        alert.setTitle(I18n.get("troubleshooting.title"));
+        alert.setHeaderText(I18n.get("troubleshooting.header"));
+        alert.setContentText(I18n.get("troubleshooting.text"));
+        alert.showAndWait();
+    }
+
+    private void showRenameTroubleshooting() {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.initOwner(stage);
+        var css = getClass().getResource("/rol/launcher/launcher.css");
+        if (css != null) alert.getDialogPane().getStylesheets().add(css.toExternalForm());
+        alert.setTitle(I18n.get("troubleshooting.title"));
+        alert.setHeaderText(I18n.get("troubleshooting.rename.header"));
+        alert.setContentText(I18n.get("troubleshooting.rename.text"));
+        alert.showAndWait();
+    }
+
+    private static boolean isFolderMoveAccessDenied(Throwable error) {
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            if (current instanceof AccessDeniedException
+                    && current.getMessage() != null
+                    && current.getMessage().contains("->")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ---------- state and rendering ----------
@@ -610,6 +652,7 @@ public class App extends Application {
         versionsOpenItem.setText(I18n.get("versions.open"));
         helpMenu.setText(I18n.get("menu.help"));
         aboutItem.setText(I18n.get("menu.about"));
+        troubleshootingItem.setText(I18n.get("menu.troubleshooting"));
         logItem.setText(I18n.get("menu.openlog"));
         checkButton.setText(I18n.get("main.check"));
         versionsButton.setText(I18n.get("versions.open"));

@@ -65,7 +65,9 @@ https://raw.githubusercontent.com/Delyalend/rol-launcher/main/releases/manifest.
   - switching blocked while `legends.exe` is running;
   - preserves `custom maps`, `savegames`, `profiles`, `screenshots`, and `replays`.
 - Error logging to `%APPDATA%\RoLauncher\launcher.log`, with stack traces,
-  rotation at 1 MB, selectable status text, and Help → Open log file.
+  rotation at 1 MB, selectable status text, Help → Open log file, and a
+  localized Help → Troubleshooting dialog. Folder-rename failures explicitly
+  recommend restarting Windows before retrying the update.
 - Portable native Windows package built with `jlink` + `jpackage`.
 - Packaged runtime MUST contain `jdk.crypto.ec` and `jdk.crypto.cryptoki`.
   Without `jdk.crypto.ec`, GitHub HTTPS fails with
