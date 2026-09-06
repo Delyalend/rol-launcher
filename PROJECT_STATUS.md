@@ -118,8 +118,7 @@ The update pipeline and portable launcher are working in production:
 6. launcher applies and verifies it;
 7. game camera can zoom farther out.
 
-The latest uncommitted feature is download-cache verification, committed as
-`70ef5ab`. The working tree was clean at the last check.
+The latest completed work includes cache verification (`70ef5ab`), path-aware installation state (`a3788d2`), game-process protection (`4c40331`), switch recovery journal (`1d1892d`), and manifest validation (`5c6b79b`). The user confirmed that switching works and is blocked while the game is running. Next: publish launcher-v0.1.1.
 
 ## Recommended next steps
 
@@ -137,7 +136,8 @@ The latest uncommitted feature is download-cache verification, committed as
 
 - Make another small game/mod change and publish `v0.3.0`.
 - Verify update from v0.2.0 → v0.3.0.
-- Verify version switching forward and backward on real game files.
+- [x] Verify version switching forward/backward on real game files.
+- [x] Verify switching is blocked while the game is running.
 - Verify cache hits: repeated update/version switch should not redownload
   files whose size and SHA-256 match.
 

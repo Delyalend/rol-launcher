@@ -70,7 +70,7 @@ cf64f75 Fix download URLs: assets live in GitHub Releases, not next to the manif
 36795e1 Add file logging to the launcher
 ```
 
-The working tree was clean at handoff time.
+The user confirmed that version switching works and that switching is blocked while the game is running. The next release should be launcher-v0.1.1.
 
 ## Repository structure
 
