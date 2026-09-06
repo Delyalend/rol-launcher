@@ -145,9 +145,10 @@ final class Repack {
 
     // ---------- parsing and building ----------
 
-    private record ParseResult(int block2Start, List<Entry> entries) {}
+    /** Parsed archive metadata shared by the repacker and archive inspection tools. */
+    record ParseResult(int block2Start, List<Entry> entries) {}
 
-    private static ParseResult parse(byte[] b) {
+    static ParseResult parse(byte[] b) {
         ByteBuffer bb = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN);
         for (int start = 0x14; start < 0x800; start++) {
             if (start + 8 > b.length) continue;

@@ -25,3 +25,36 @@ java -jar devkit/target/devkit-0.1.0-SNAPSHOT.jar snapshot "C:\path\to\game"
 (`BIGS\`, `BIGS\patch8\`, `BIGS\patches\patch8\`); originals are copied to
 the backup folder (by default `_bigs_backup_original` next to the game).
 Compiled (bxml) entries are never touched.
+
+## Inspecting and extracting `.big` archives
+
+The devkit also has read-only archive commands. List an archive:
+
+```
+java -cp out rol.devkit.Main list-big "C:\path\to\game\BIGS\interface.big"
+```
+
+Extract all entries, or only named assets:
+
+```
+java -cp out rol.devkit.Main extract-big "C:\path\to\game\BIGS\interface.big" out\interface
+java -cp out rol.devkit.Main extract-big "C:\path\to\game\BIGS\interface.big" out\ui menu_buttons.tga gold_buttons.tga
+```
+
+The extractor validates output paths and never modifies the source archive.
+
+Game UI files named `.tga` are DDS images internally. Convert them to PNG
+for JavaFX with:
+
+```
+java -cp out rol.devkit.Main convert-image out\ui\art\interface\buttons\gold_buttons.tga launcher-theme\gold_buttons.png
+```
+
+The converter supports the uncompressed 32-bit UI textures and DXT5 textures
+used by the original interface archive.
+
+Create a Windows icon with all common sizes embedded:
+
+```
+java -cp out rol.devkit.Main create-icon launcher/src/main/resources/rol/launcher/theme/logo.png launcher/RoLauncher.ico
+```

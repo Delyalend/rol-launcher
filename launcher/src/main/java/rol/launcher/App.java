@@ -17,7 +17,10 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -27,6 +30,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 
 /**
  * Launcher entry point: main screen with installed/latest version,
@@ -51,13 +58,19 @@ public class App extends Application {
     private RadioMenuItem langEn;
     private RadioMenuItem langRu;
     private Menu versionsMenu;
+    private MenuItem versionsOpenItem;
     private Menu helpMenu;
     private MenuItem aboutItem;
     private MenuItem logItem;
     // main view
     private Label installedLabel;
     private Label latestLabel;
+    private Label currentChangelogCaption;
+    private Label currentChangelogLabel;
     private Button checkButton;
+    private Button versionsButton;
+    private Label welcomeLabel;
+    private ImageView logoImage;
     private TextField statusLabel;
     private VBox updateBox;
     private Label updateLabel;
@@ -66,6 +79,7 @@ public class App extends Application {
     private Button updateButton;
     private Button installButton;
     private Button playButton;
+    private Button verifyButton;
     private ProgressBar progressBar;
 
     // state
@@ -74,10 +88,16 @@ public class App extends Application {
     private boolean checking;
     private boolean busy;
     private Manifest lastManifest;
+    private String lastDetectionPath = "";
 
     @Override
     public void start(Stage stage) {
         this.stage = stage;
+        try (var iconStream = getClass().getResourceAsStream("/rol/launcher/theme/icon.png")) {
+            if (iconStream != null) stage.getIcons().add(new Image(iconStream));
+        } catch (IOException e) {
+            Log.error("Failed to load launcher icon", e);
+        }
         try {
             if (SwitchJournal.recover(Path.of(settings.getGamePath()).toAbsolutePath().normalize())) {
                 Log.info("Recovered an unfinished version switch transaction");
@@ -95,6 +115,7 @@ public class App extends Application {
         buildUi();
         applyI18n();
         stage.show();
+        stage.sizeToScene();
         refreshState();
         if (!settings.getManifestUrl().isBlank()) {
             checkUpdates();
@@ -123,6 +144,9 @@ public class App extends Application {
 
         // Versions menu (populated from the manifest)
         versionsMenu = new Menu();
+        versionsOpenItem = new MenuItem();
+        versionsOpenItem.setOnAction(e -> openVersions());
+        versionsMenu.getItems().add(versionsOpenItem);
         versionsMenu.setDisable(true);
 
         // Help menu
@@ -137,51 +161,95 @@ public class App extends Application {
         menuBar = new MenuBar(fileMenu, languageMenu, versionsMenu, helpMenu);
 
         // Main view
+        welcomeLabel = new Label();
+        welcomeLabel.getStyleClass().add("page-title");
+        Image logo = new Image(getClass().getResourceAsStream("/rol/launcher/theme/logo.png"));
+        logoImage = new ImageView(logo);
+        logoImage.setPreserveRatio(true);
+        logoImage.setFitWidth(330);
+        logoImage.getStyleClass().add("game-logo");
         installedLabel = new Label();
+        installedLabel.getStyleClass().add("version-value");
         latestLabel = new Label();
+        latestLabel.getStyleClass().add("muted-label");
+        currentChangelogCaption = new Label();
+        currentChangelogCaption.getStyleClass().add("section-caption");
+        currentChangelogLabel = new Label();
+        currentChangelogLabel.setWrapText(true);
+        currentChangelogLabel.getStyleClass().add("current-changelog");
         checkButton = new Button();
         checkButton.setOnAction(e -> checkUpdates());
+        checkButton.getStyleClass().add("secondary-button");
+        versionsButton = new Button();
+        versionsButton.setOnAction(e -> openVersions());
+        versionsButton.getStyleClass().add("secondary-button");
         statusLabel = new TextField();
+        statusLabel.getStyleClass().add("status-line");
         statusLabel.setEditable(false);
         statusLabel.setFocusTraversable(false);
         statusLabel.setStyle("-fx-background-color: transparent; "
                 + "-fx-background-insets: 0; -fx-padding: 0; -fx-border-color: transparent;");
 
         updateLabel = new Label();
-        updateLabel.setStyle("-fx-font-weight: bold");
+        updateLabel.getStyleClass().add("card-title");
         changelogCaption = new Label();
+        changelogCaption.getStyleClass().add("section-caption");
         changelogArea = new TextArea();
+        changelogArea.getStyleClass().add("changelog-area");
         changelogArea.setEditable(false);
         changelogArea.setWrapText(true);
         changelogArea.setPrefRowCount(5);
-        changelogArea.setMaxWidth(480);
+        changelogArea.setMaxWidth(Double.MAX_VALUE);
         updateButton = new Button();
         updateButton.setOnAction(e -> runUpdate());
-        updateBox = new VBox(6, updateLabel, changelogCaption, changelogArea, updateButton);
+        updateButton.getStyleClass().add("accent-button");
+        updateBox = new VBox(10, updateLabel, changelogCaption, changelogArea);
+        updateBox.getStyleClass().add("update-card");
         updateBox.setVisible(false);
         updateBox.setManaged(false);
+        updateButton.setVisible(false);
+        updateButton.setManaged(false);
 
         installButton = new Button();
         installButton.setOnAction(e -> runInstall());
+        installButton.getStyleClass().add("accent-button");
         installButton.setVisible(false);
         installButton.setManaged(false);
 
         playButton = new Button();
         playButton.setOnAction(e -> play());
+        playButton.getStyleClass().add("play-button");
+
+        verifyButton = new Button();
+        verifyButton.setOnAction(e -> runVerify());
+        verifyButton.getStyleClass().add("secondary-button");
+        verifyButton.setVisible(false);
+        verifyButton.setManaged(false);
 
         progressBar = new ProgressBar(0);
+        progressBar.getStyleClass().add("download-progress");
         progressBar.setMaxWidth(Double.MAX_VALUE);
         progressBar.setVisible(false);
         progressBar.setManaged(false);
 
-        VBox center = new VBox(10, installedLabel, latestLabel, checkButton,
-                statusLabel, updateBox, installButton, playButton, progressBar);
+        VBox header = new VBox(4, logoImage, welcomeLabel, versionsButton);
+        header.getStyleClass().add("header-row");
+        HBox actions = new HBox(10, playButton, updateButton, installButton, verifyButton, checkButton);
+        actions.getStyleClass().add("action-row");
+        VBox statusCard = new VBox(6, installedLabel, latestLabel,
+                currentChangelogCaption, currentChangelogLabel, statusLabel);
+        statusCard.getStyleClass().add("status-card");
+        VBox center = new VBox(18, header, statusCard, actions, updateBox, progressBar);
+        center.getStyleClass().add("page-content");
         center.setPadding(new Insets(16));
 
         BorderPane root = new BorderPane();
         root.setTop(menuBar);
         root.setCenter(center);
-        stage.setScene(new Scene(root, 560, 400));
+        Scene scene = new Scene(root);
+        var css = getClass().getResource("/rol/launcher/launcher.css");
+        if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        stage.setScene(scene);
     }
 
     // ---------- actions ----------
@@ -194,11 +262,13 @@ public class App extends Application {
     }
 
     private void openSettings() {
+        String oldGamePath = settings.getGamePath();
         SettingsDialog dialog = new SettingsDialog(settings);
         Optional<SettingsDialog.Result> result = dialog.showAndWait();
         result.ifPresent(r -> {
             settings.setManifestUrl(r.manifestUrl());
             settings.setGamePath(r.gamePath());
+            if (!oldGamePath.equals(settings.getGamePath())) lastDetectionPath = "";
             if (!I18n.getLocale().equals(r.locale())) {
                 changeLanguage(r.locale());
             } else {
@@ -240,39 +310,61 @@ public class App extends Application {
         latestVersionId = manifest.latest();
         Map<String, Object> latest = manifest.latestVersion();
         latestChangelog = latest == null ? List.of() : Manifest.changelogOf(latest);
+        renderInstalled();
         renderLatest();
         renderUpdateBox();
         renderInstallButton();
+        renderVerifyButton();
         refreshVersionsMenu();
+        stage.sizeToScene();
+        if (!busy
+                && settings.getInstalledVersion().isBlank()
+                && !settings.getGamePath().isBlank()
+                && !settings.getGamePath().equals(lastDetectionPath)) {
+            detectExistingGame();
+            return;
+        }
         if (!busy) {
-            statusLabel.setText(updateBox.isVisible() ? "" : I18n.get("main.check.uptodate"));
+            statusLabel.setText(settings.getInstalledVersion().isBlank()
+                    ? I18n.get("main.notInstalled")
+                    : updateBox.isVisible() ? "" : I18n.get("main.check.uptodate"));
         }
     }
 
     private void renderInstallButton() {
         boolean installable = lastManifest != null
-                && !Manifest.basePartsOf(lastManifest.latestVersion()).isEmpty()
+                && lastManifest.baseVersionFor(lastManifest.latest()) != null
                 && settings.getInstalledVersion().isBlank()
                 && GameRunner.findGameExe(settings.getGamePath()) == null;
         installButton.setVisible(installable);
         installButton.setManaged(installable);
     }
 
-    /** Rebuilds the Versions menu from the manifest; the installed version is marked. */
+    private void renderVerifyButton() {
+        boolean available = lastManifest != null
+                && !settings.getInstalledVersion().isBlank()
+                && !settings.getGamePath().isBlank();
+        verifyButton.setVisible(available);
+        verifyButton.setManaged(available);
+    }
+
+    /** Keeps the compact menu entry available; details live in a dedicated dialog. */
     private void refreshVersionsMenu() {
         versionsMenu.getItems().clear();
+        versionsMenu.getItems().add(versionsOpenItem);
         if (lastManifest == null) {
             versionsMenu.setDisable(true);
             return;
         }
-        String installed = settings.getInstalledVersion();
-        for (Map<String, Object> v : lastManifest.versions()) {
-            String id = Manifest.idOf(v);
-            MenuItem item = new MenuItem(installed.equals(id) ? "• " + id : id);
-            item.setOnAction(e -> confirmSwitch(id));
-            versionsMenu.getItems().add(item);
-        }
-        versionsMenu.setDisable(busy || versionsMenu.getItems().isEmpty());
+        versionsMenu.setDisable(busy);
+    }
+
+    private void openVersions() {
+        if (lastManifest == null || busy) return;
+        VersionsDialog dialog = new VersionsDialog(lastManifest,
+                settings.getInstalledVersion(), this::confirmSwitch);
+        dialog.initOwner(stage);
+        dialog.showAndWait();
     }
 
     private void confirmSwitch(String targetId) {
@@ -284,6 +376,10 @@ public class App extends Application {
             return;
         }
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.initOwner(stage);
+        var css = getClass().getResource("/rol/launcher/launcher.css");
+        if (css != null) alert.getDialogPane().getStylesheets().add(css.toExternalForm());
+        alert.setGraphic(null);
         alert.setTitle(I18n.get("menu.versions"));
         alert.setHeaderText(I18n.get("main.switch.confirm",
                 settings.getInstalledVersion(), targetId));
@@ -291,6 +387,8 @@ public class App extends Application {
         ButtonType switchButton = new ButtonType(I18n.get("main.switch.button"));
         ButtonType cancelButton = new ButtonType(I18n.get("main.switch.cancel"));
         alert.getButtonTypes().setAll(switchButton, cancelButton);
+        alert.getDialogPane().lookupButton(switchButton).getStyleClass().add("accent-button");
+        alert.getDialogPane().lookupButton(cancelButton).getStyleClass().add("secondary-button");
         if (alert.showAndWait().orElse(cancelButton) == switchButton) {
             runSwitch(targetId);
         }
@@ -344,6 +442,29 @@ public class App extends Application {
                 () -> statusLabel.setText(I18n.get("main.install.done", latestVersionId)));
     }
 
+    private void runVerify() {
+        if (busy || lastManifest == null) return;
+        runTask(() -> new VersionManager(settings).verifyInstalled(lastManifest, uiProgress()),
+                () -> statusLabel.setText(I18n.get("main.verify.done")));
+    }
+
+    /** Detects an already populated game folder without modifying its contents. */
+    private void detectExistingGame() {
+        if (busy || lastManifest == null) return;
+        lastDetectionPath = settings.getGamePath();
+        String[] detectedVersion = {null};
+        statusLabel.setText(I18n.get("main.detecting"));
+        runTask(() -> {
+            detectedVersion[0] = new VersionManager(settings)
+                    .detectVersion(lastManifest, uiProgress());
+            if (detectedVersion[0] != null) {
+                settings.setInstalledVersion(detectedVersion[0]);
+            }
+        }, () -> statusLabel.setText(detectedVersion[0] == null
+                ? I18n.get("main.detect.none")
+                : I18n.get("main.detect.found", detectedVersion[0])));
+    }
+
     /** Runs a blocking task on a background thread with busy UI state. */
     private void runTask(ThrowingRunnable task, Runnable onSuccess) {
         busy = true;
@@ -357,7 +478,9 @@ public class App extends Application {
                     renderInstalled();
                     renderUpdateBox();
                     renderInstallButton();
+                    renderVerifyButton();
                     refreshVersionsMenu();
+                    stage.sizeToScene();
                     onSuccess.run();
                 });
             } catch (Exception e) {
@@ -377,10 +500,13 @@ public class App extends Application {
     private void setBusyUi(boolean busy) {
         updateButton.setDisable(busy);
         installButton.setDisable(busy);
+        verifyButton.setDisable(busy);
         checkButton.setDisable(busy);
+        versionsButton.setDisable(busy || lastManifest == null);
         playButton.setDisable(busy
                 || GameRunner.findGameExe(settings.getGamePath()) == null);
         versionsMenu.setDisable(busy || lastManifest == null || versionsMenu.getItems().isEmpty());
+        versionsButton.setDisable(busy || lastManifest == null);
         progressBar.setVisible(busy);
         progressBar.setManaged(busy);
         progressBar.setProgress(0);
@@ -426,6 +552,7 @@ public class App extends Application {
         renderInstalled();
         playButton.setDisable(GameRunner.findGameExe(settings.getGamePath()) == null);
         renderInstallButton();
+        renderVerifyButton();
         if (settings.getManifestUrl().isBlank()) {
             statusLabel.setText(I18n.get("main.noManifestUrl"));
         }
@@ -435,6 +562,17 @@ public class App extends Application {
         String installed = settings.getInstalledVersion();
         installedLabel.setText(I18n.get("main.version",
                 installed.isBlank() ? I18n.get("main.version.none") : installed));
+        Map<String, Object> current = lastManifest == null || installed.isBlank()
+                ? null : lastManifest.version(installed);
+        List<String> changes = current == null ? List.of() : Manifest.changelogOf(current);
+        boolean visible = current != null;
+        currentChangelogCaption.setVisible(visible);
+        currentChangelogCaption.setManaged(visible);
+        currentChangelogLabel.setVisible(visible);
+        currentChangelogLabel.setManaged(visible);
+        currentChangelogLabel.setText(changes.isEmpty()
+                ? I18n.get("main.current.changelog.none")
+                : String.join("\n", changes.stream().map(change -> "• " + change).toList()));
     }
 
     private void renderLatest() {
@@ -448,6 +586,8 @@ public class App extends Application {
                 && !latestVersionId.equals(settings.getInstalledVersion());
         updateBox.setVisible(available);
         updateBox.setManaged(available);
+        updateButton.setVisible(available);
+        updateButton.setManaged(available);
         if (available) {
             updateLabel.setText(I18n.get("main.update.available", latestVersionId));
             changelogArea.setText(String.join("\n", latestChangelog));
@@ -457,6 +597,7 @@ public class App extends Application {
     /** Re-applies all UI texts after a locale change. */
     private void applyI18n() {
         stage.setTitle(I18n.get("app.title"));
+        welcomeLabel.setText(I18n.get("main.welcome"));
         fileMenu.setText(I18n.get("menu.file"));
         settingsItem.setText(I18n.get("menu.settings"));
         exitItem.setText(I18n.get("menu.exit"));
@@ -466,17 +607,22 @@ public class App extends Application {
         langEn.setSelected("en".equals(I18n.getLocale().getLanguage()));
         langRu.setSelected("ru".equals(I18n.getLocale().getLanguage()));
         versionsMenu.setText(I18n.get("menu.versions"));
+        versionsOpenItem.setText(I18n.get("versions.open"));
         helpMenu.setText(I18n.get("menu.help"));
         aboutItem.setText(I18n.get("menu.about"));
         logItem.setText(I18n.get("menu.openlog"));
         checkButton.setText(I18n.get("main.check"));
+        versionsButton.setText(I18n.get("versions.open"));
         playButton.setText(I18n.get("main.play"));
         updateButton.setText(I18n.get("main.update.button"));
         installButton.setText(I18n.get("main.install.button"));
+        verifyButton.setText(I18n.get("main.verify.button"));
         changelogCaption.setText(I18n.get("main.changelog"));
+        currentChangelogCaption.setText(I18n.get("main.current.changelog"));
         renderInstalled();
         renderLatest();
         renderUpdateBox();
+        if (lastManifest != null) refreshVersionsMenu();
         statusLabel.setText(checking ? I18n.get("main.checking") : "");
     }
 

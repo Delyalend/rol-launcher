@@ -26,6 +26,14 @@ jpackage --type app-image --name RoLauncher --runtime-image launcher/target/imag
       --module rol.launcher/rol.launcher.App --dest launcher/target/jpackage
 ```
 
+Add the themed Windows icon to the package:
+
+```
+jpackage --type app-image --name RoLauncher --icon launcher/RoLauncher.ico \
+      --runtime-image launcher/target/image \
+      --module rol.launcher/rol.launcher.App --dest launcher/target/jpackage
+```
+
 The result: `launcher/target/jpackage/RoLauncher/RoLauncher.exe` (portable).
 
 ## Features (by screen)

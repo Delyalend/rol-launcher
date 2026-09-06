@@ -58,6 +58,57 @@ public final class Manifest {
     public static String dateOf(Map<String, Object> version) { return (String) version.getOrDefault("date", ""); }
     public static String idOf(Map<String, Object> version) { return (String) version.get("id"); }
 
+    /** Finds the base used by VersionManager when rebuilding a target version. */
+    public Map<String, Object> baseVersionFor(String targetId) {
+        int targetIndex = -1;
+        List<Map<String, Object>> all = versions();
+        for (int i = 0; i < all.size(); i++) {
+            if (targetId.equals(idOf(all.get(i)))) {
+                targetIndex = i;
+                break;
+            }
+        }
+        if (targetIndex < 0) return null;
+        for (int i = targetIndex; i >= 0; i--) {
+            if (!basePartsOf(all.get(i)).isEmpty()) return all.get(i);
+        }
+        return null;
+    }
+
+    /** Approximate download size for the exact path used to reach targetId. */
+    public long downloadSizeFor(String targetId, String currentId) {
+        Map<String, Object> target = version(targetId);
+        if (target == null || targetId.equals(currentId)) return 0;
+        if (currentId != null && !currentId.isBlank()) {
+            Map<String, Object> direct = updateOf(target, currentId);
+            if (direct != null) return artifactSize(direct);
+        }
+        Map<String, Object> base = baseVersionFor(targetId);
+        if (base == null) return 0;
+        long total = basePartsOf(base).stream().mapToLong(Manifest::artifactSize).sum();
+        if (!idOf(base).equals(targetId)) {
+            Map<String, Object> update = updateOf(target, idOf(base));
+            if (update != null) total += artifactSize(update);
+        }
+        return total;
+    }
+
+    /** Size of the installed files for a version, as recorded in the manifest. */
+    public static long installedSizeOf(Map<String, Object> version) {
+        if (version == null || !(version.get("files") instanceof Map<?, ?> files)) return 0;
+        long total = 0;
+        for (Object raw : files.values()) {
+            if (raw instanceof Map<?, ?> meta && meta.get("s") instanceof Number size) {
+                total += size.longValue();
+            }
+        }
+        return total;
+    }
+
+    private static long artifactSize(Map<String, Object> artifact) {
+        return artifact != null && artifact.get("size") instanceof Number size ? size.longValue() : 0;
+    }
+
     @SuppressWarnings("unchecked")
     private static void validate(Map<String, Object> root) {
         if (root == null) fail("root is missing");

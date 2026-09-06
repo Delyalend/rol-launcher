@@ -30,6 +30,8 @@ public final class SettingsDialog extends Dialog<SettingsDialog.Result> {
 
     public SettingsDialog(SettingsManager settings) {
         setTitle(I18n.get("settings.title"));
+        var css = getClass().getResource("/rol/launcher/launcher.css");
+        if (css != null) getDialogPane().getStylesheets().add(css.toExternalForm());
 
         languageBox.setItems(FXCollections.observableArrayList(
                 Locale.ENGLISH, Locale.of("ru")));
@@ -49,7 +51,13 @@ public final class SettingsDialog extends Dialog<SettingsDialog.Result> {
         manifestUrlField.setText(settings.getManifestUrl());
         gamePathField.setText(settings.getGamePath());
 
+        Button resetManifestButton = new Button(I18n.get("settings.resetDefault"));
+        resetManifestButton.getStyleClass().add("secondary-button");
+        resetManifestButton.setOnAction(e ->
+                manifestUrlField.setText(SettingsManager.DEFAULT_MANIFEST_URL));
+
         Button browseButton = new Button(I18n.get("settings.browse"));
+        browseButton.getStyleClass().add("secondary-button");
         browseButton.setOnAction(e -> {
             DirectoryChooser chooser = new DirectoryChooser();
             chooser.setTitle(I18n.get("settings.gamePath"));
@@ -73,13 +81,14 @@ public final class SettingsDialog extends Dialog<SettingsDialog.Result> {
         grid.add(languageBox, 1, 0);
         grid.add(new Label(I18n.get("settings.manifestUrl")), 0, 1);
         grid.add(manifestUrlField, 1, 1);
+        grid.add(resetManifestButton, 2, 1);
         grid.add(new Label(I18n.get("settings.gamePath")), 0, 2);
         grid.add(gamePathField, 1, 2);
         grid.add(browseButton, 2, 2);
-        manifestUrlField.setPrefWidth(380);
-
         getDialogPane().setContent(grid);
         getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        getDialogPane().lookupButton(ButtonType.OK).getStyleClass().add("accent-button");
+        getDialogPane().lookupButton(ButtonType.CANCEL).getStyleClass().add("secondary-button");
         setResultConverter(buttonType -> buttonType == ButtonType.OK
                 ? new Result(languageBox.getValue(), manifestUrlField.getText(), gamePathField.getText())
                 : null);

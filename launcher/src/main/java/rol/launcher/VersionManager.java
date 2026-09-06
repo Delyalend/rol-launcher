@@ -69,10 +69,9 @@ public final class VersionManager {
         if (latest == null) {
             throw new IOException("Manifest has no versions");
         }
-        List<Map<String, Object>> parts = Manifest.basePartsOf(latest);
-        if (parts.isEmpty()) {
-            throw new IOException("No base archive in the manifest");
-        }
+        Map<String, Object> baseVersion = manifest.baseVersionFor(manifest.latest());
+        if (baseVersion == null) throw new IOException("No base archive in the manifest");
+        List<Map<String, Object>> parts = Manifest.basePartsOf(baseVersion);
         if (settings.getGamePath().isBlank()) {
             throw new IOException("Game folder is not set in the settings");
         }
@@ -91,6 +90,17 @@ public final class VersionManager {
         progress.stage(STAGE_EXTRACT);
         Updater.extractBase(volumes.toArray(Path[]::new), gameDir, progress::progress);
 
+        String baseId = Manifest.idOf(baseVersion);
+        if (!baseId.equals(manifest.latest())) {
+            Map<String, Object> update = Manifest.updateOf(latest, baseId);
+            if (update == null) {
+                throw new IOException("No update path from " + baseId + " to " + manifest.latest());
+            }
+            progress.stage(STAGE_APPLY);
+            Updater.applyPackage(downloadEntry(update, (String) update.get("file"), progress),
+                    gameDir, progress::progress);
+        }
+
         progress.stage(STAGE_VERIFY);
         @SuppressWarnings("unchecked")
         Map<String, Object> files = (Map<String, Object>) latest.get("files");
@@ -100,6 +110,41 @@ public final class VersionManager {
             throw new IOException("Verification failed: " + summarize(problems));
         }
         settings.setInstalledVersion(manifest.latest());
+    }
+
+    /** Verifies the currently recorded installation without changing any files. */
+    public void verifyInstalled(Manifest manifest, Progress progress)
+            throws IOException, NoSuchAlgorithmException {
+        String installed = settings.getInstalledVersion();
+        if (installed.isBlank()) throw new IOException("No installed version recorded");
+        if (settings.getGamePath().isBlank()) throw new IOException("Game folder is not set in the settings");
+        Map<String, Object> version = manifest.version(installed);
+        if (version == null) throw new IOException("Installed version is not in the manifest: " + installed);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> files = (Map<String, Object>) version.get("files");
+        Path gameDir = Path.of(settings.getGamePath());
+        if (!Files.isDirectory(gameDir)) throw new IOException("Game folder does not exist");
+        progress.stage(STAGE_VERIFY);
+        List<String> problems = Updater.verify(gameDir, files, null, progress::progress);
+        if (!problems.isEmpty()) throw new IOException("Verification failed: " + summarize(problems));
+    }
+
+    /** Finds an exact manifest version in an existing game folder, read-only. */
+    public String detectVersion(Manifest manifest, Progress progress)
+            throws IOException, NoSuchAlgorithmException {
+        if (settings.getGamePath().isBlank()) return null;
+        Path gameDir = Path.of(settings.getGamePath());
+        if (!Files.isDirectory(gameDir)) return null;
+        List<Map<String, Object>> versions = new ArrayList<>(manifest.versions());
+        java.util.Collections.reverse(versions);
+        for (Map<String, Object> version : versions) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> files = (Map<String, Object>) version.get("files");
+            progress.stage(STAGE_VERIFY);
+            List<String> problems = Updater.verify(gameDir, files, null, progress::progress);
+            if (problems.isEmpty()) return Manifest.idOf(version);
+        }
+        return null;
     }
 
     /**
