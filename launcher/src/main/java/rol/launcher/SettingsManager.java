@@ -20,6 +20,10 @@ public final class SettingsManager {
     public static final String KEY_INSTALLED_VERSION = "installedVersion";
     private static final String FILE_NAME = "settings.properties";
 
+    /** Baked-in manifest URL; the setting overrides it. */
+    public static final String DEFAULT_MANIFEST_URL =
+            "https://raw.githubusercontent.com/Delyalend/rol-launcher/main/releases/manifest.json";
+
     private final Properties props = new Properties();
 
     public SettingsManager() {
@@ -43,9 +47,10 @@ public final class SettingsManager {
         save();
     }
 
-    /** Raw manifest URL (raw.githubusercontent.com etc.); empty = not configured. */
+    /** Raw manifest URL (raw.githubusercontent.com etc.); defaults to the
+     * baked-in URL unless overridden in the settings. */
     public String getManifestUrl() {
-        return props.getProperty(KEY_MANIFEST_URL, "");
+        return props.getProperty(KEY_MANIFEST_URL, DEFAULT_MANIFEST_URL);
     }
 
     public void setManifestUrl(String url) {
