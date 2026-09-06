@@ -53,9 +53,12 @@ https://raw.githubusercontent.com/Delyalend/rol-launcher/main/releases/manifest.
 - Fresh installation from split ZIP base volumes.
 - Applying update packages and deleting files from `.rol-removed.txt`.
 - Full SHA-256 verification after installation/update.
-- In-place version switching:
-  - forward: one direct update package;
-  - backward/far jump: rebuild from the nearest base version and apply a package.
+- Safe version switching:
+  - forward: direct update staged outside the live folder;
+  - backward/far jump: rebuild from the nearest base version and apply a package;
+  - full target verification before atomic activation and rollback backup;
+  - switching blocked while `legends.exe` is running;
+  - preserves `custom maps`, `savegames`, `profiles`, `screenshots`, and `replays`.
 - Error logging to `%APPDATA%\RoLauncher\launcher.log`, with stack traces,
   rotation at 1 MB, selectable status text, and Help → Open log file.
 - Portable native Windows package built with `jlink` + `jpackage`.

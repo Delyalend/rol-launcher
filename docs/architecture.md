@@ -47,13 +47,31 @@ version, no per-version copies on disk:
 - **Forward** (target newer than installed): one update package hop —
   `updates_from` of the target version contains a package for every older
   version, so no chains are ever needed.
-- **Backward / far jump**: rebuild from a base archive — the target
-  version's own base if it has one, otherwise the nearest older version
-  with base parts (in manifest order). Extract the base, apply the
-  `update-vBase-vTarget` package, then sweep files that are not listed in
-  the target's files map (leftovers of the newer version).
+- **Backward / far jump**: rebuild in a sibling staging directory from a
+  base archive — the target version's own base if it has one, otherwise the
+  nearest older version with base parts (in manifest order). Extract the base,
+  preserve user data, apply the `update-vBase-vTarget` package, and sweep
+  files that are not listed in the target's files map.
+- The live installation is untouched until staging is fully verified. The
+  launcher then atomically moves the old directory to a backup, activates
+  staging, records the target version, and removes the backup. If activation
+  fails, the backup is restored.
+- Switching and updates are blocked while `legends.exe` is running.
 - Finally verify SHA-256 of every file against the target version's files
-  map and record the new version locally.
+  map and record the version locally.
+
+User data preserved during base rebuilds:
+
+```text
+custom maps/
+savegames/
+profiles/
+screenshots/
+replays/
+```
+
+These paths are copied from the live installation into staging before the
+new version is verified.
 
 Downloads are cached in `%APPDATA%\RoLauncher\cache`, so rebuilds reuse
 previously downloaded volumes and packages. Periodically (about every 10
@@ -116,13 +134,16 @@ step a simple "download and run the installer" flow is fine.
 
 ```
 1. Read target version from manifest.json
-2. Download update package for the installed version
+2. Refuse if the game process is running
+3. Download update package for the installed version
    (resume support: .part file + HTTP Range)
-3. Verify package SHA-256 from updates_from entry
-4. Extract package over the game folder
-5. Delete files listed in .rol-removed.txt
-6. Verify SHA-256 of the touched files against the target version's files map
-7. Record the new installed version locally
+4. Verify package SHA-256 from updates_from entry
+5. Copy/extract into sibling staging directory
+6. Delete files listed in .rol-removed.txt inside staging only
+7. Preserve configured user-data directories during base rebuilds
+8. Verify SHA-256 of the complete staging installation
+9. Atomically swap staging with the live installation
+10. Record the new installed version locally and remove the backup
 ```
 
 Fresh install: download the base volumes (with resume), concatenate and

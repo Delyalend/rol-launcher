@@ -100,10 +100,14 @@ or File → Settings → Language.
 On startup (and on "Check for updates") the launcher downloads the
 manifest from the configured raw URL, compares the installed version with
 `latest` and shows an update banner with the changelog. "Update" downloads
-the package for the installed version (with resume), applies it (including
-deletions from `.rol-removed.txt`) and verifies the touched files against
-the manifest hashes. "Install game" downloads the split base volumes,
-extracts them and verifies the whole installation. "Play" launches
+the package for the installed version (with resume), applies it inside a
+staging directory (including deletions from `.rol-removed.txt`) and verifies
+the complete target before atomically swapping it into place. Version
+switching is blocked while the game is running; failed activation restores
+the previous installation. During base rebuilds the launcher preserves
+`custom maps`, `savegames`, `profiles`, `screenshots` and `replays`.
+"Install game" downloads the split base volumes, extracts them and verifies
+the whole installation. "Play" launches
 `legends.exe` from the selected game folder (button enabled only when the
 folder contains the executable). Downloads are cached in
 `%APPDATA%\RoLauncher\cache`.

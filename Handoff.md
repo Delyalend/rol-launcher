@@ -148,9 +148,12 @@ classes and is not source.
 - Update packages are ZIPs containing changed files and optional
   `.rol-removed.txt`.
 - Base archives are byte-split ZIP volumes; no 7z library is required.
-- Version switching is in-place:
+- Version switching is staged and verified before activation:
   forward uses one direct package; backward rebuilds from a base and applies
-  the target package, then removes files not listed in the target manifest.
+  the target package in a sibling staging directory, then atomically swaps
+  directories with rollback backup. Switching is blocked while the game is
+  running. Base rebuilds preserve `custom maps`, `savegames`, `profiles`,
+  `screenshots`, and `replays`.
 
 ## Recommended next task
 
