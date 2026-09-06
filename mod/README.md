@@ -136,6 +136,10 @@ For Venza's Flyer Upgrade abilities, the required bonus records are
 Venza's Signal Tank Blimp abilities similarly require the `Tank Blimp` unit
 record in `unitrules.xml`.
 
+Battaglion's Improved Mortar abilities require
+`Improved Mortar Bonus`, `Improved Mortar Bonus 3` and `Improved Mortar Bonus
+4` in `techrules.xml`.
+
 The public tooling situation is limited: the original BHG runtime compiler is
 not available, but the community has preserved the official RoL modding guides
 and BIG tools. The Rise of Legends guide pack includes the BHG Scripting Kit,
