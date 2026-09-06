@@ -318,7 +318,7 @@ public class App extends Application {
         if (busy || lastManifest == null || latestVersionId == null) {
             return;
         }
-        runTask(() -> new VersionManager(settings).updateTo(
+        runTask(() -> new VersionManager(settings).switchTo(
                 lastManifest, latestVersionId, uiProgress()),
                 () -> statusLabel.setText(I18n.get("main.update.done", latestVersionId)));
     }

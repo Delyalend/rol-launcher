@@ -3,7 +3,10 @@ package rol.launcher;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
+import java.util.UUID;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -84,76 +87,83 @@ public final class VersionManager {
     }
 
     /**
-     * Switches the installed game to the target version, in place:
-     * forward jumps use a single update package; backward or far jumps
-     * rebuild from the base archive of the nearest base version (or the
-     * target's own base) and then apply a package up to the target.
+     * Switches the installed game to the target version using a sibling
+     * staging directory. The live installation is untouched until the
+     * staged target is fully verified.
      */
     public void switchTo(Manifest manifest, String targetId, Progress progress)
             throws IOException, InterruptedException, NoSuchAlgorithmException {
         String current = settings.getInstalledVersion();
-        if (targetId.equals(current)) {
-            return;
-        }
+        if (targetId.equals(current)) return;
         Map<String, Object> target = manifest.version(targetId);
-        if (target == null) {
-            throw new IOException("Version is not in the manifest: " + targetId);
-        }
-        if (settings.getGamePath().isBlank()) {
-            throw new IOException("Game folder is not set in the settings");
-        }
-        Path gameDir = Path.of(settings.getGamePath());
-
-        // forward: one update package hop
-        if (Manifest.updateOf(target, current) != null) {
-            updateTo(manifest, targetId, progress);
-            return;
-        }
-
-        // backward or far jump: rebuild from a base archive
-        Map<String, Object> baseVersion = findBaseVersion(manifest, targetId);
-        if (baseVersion == null) {
-            throw new IOException("No base archive available for version " + targetId);
-        }
-        boolean baseIsTarget = Manifest.idOf(baseVersion).equals(targetId);
-
-        progress.stage(STAGE_DOWNLOAD);
-        List<Path> volumes = new ArrayList<>();
-        for (Map<String, Object> part : Manifest.basePartsOf(baseVersion)) {
-            String file = (String) part.get("file");
-            Path local = downloadEntry(part, file, progress);
-            verifyPart(local, part);
-            volumes.add(local);
-        }
-
-        progress.stage(STAGE_EXTRACT);
-        Updater.extractBase(volumes.toArray(Path[]::new), gameDir, progress::progress);
-
-        if (!baseIsTarget) {
-            Map<String, Object> upd = Manifest.updateOf(target, Manifest.idOf(baseVersion));
-            if (upd == null) {
-                throw new IOException("No update path from " + Manifest.idOf(baseVersion)
-                        + " to " + targetId);
+        if (target == null) throw new IOException("Version is not in the manifest: " + targetId);
+        if (settings.getGamePath().isBlank()) throw new IOException("Game folder is not set in the settings");
+        Path gameDir = Path.of(settings.getGamePath()).toAbsolutePath().normalize();
+        Path staging = gameDir.resolveSibling(gameDir.getFileName() + ".rol-staging-" + UUID.randomUUID());
+        Path backup = gameDir.resolveSibling(gameDir.getFileName() + ".rol-backup-" + UUID.randomUUID());
+        Files.createDirectories(staging);
+        boolean movedOld = false;
+        try {
+            Map<String, Object> direct = Manifest.updateOf(target, current);
+            @SuppressWarnings("unchecked") Map<String, Object> files = (Map<String, Object>) target.get("files");
+            if (direct != null && Files.isDirectory(gameDir)) {
+                progress.stage(STAGE_EXTRACT);
+                copyTree(gameDir, staging);
+                progress.stage(STAGE_DOWNLOAD);
+                Path pkg = downloadEntry(direct, (String) direct.get("file"), progress);
+                progress.stage(STAGE_APPLY);
+                Updater.applyPackage(pkg, staging, progress::progress);
+            } else {
+                Map<String, Object> baseVersion = findBaseVersion(manifest, targetId);
+                if (baseVersion == null) throw new IOException("No base archive available for version " + targetId);
+                progress.stage(STAGE_DOWNLOAD);
+                List<Path> volumes = new ArrayList<>();
+                for (Map<String, Object> part : Manifest.basePartsOf(baseVersion)) {
+                    volumes.add(downloadEntry(part, (String) part.get("file"), progress));
+                }
+                progress.stage(STAGE_EXTRACT);
+                Updater.extractBase(volumes.toArray(Path[]::new), staging, progress::progress);
+                String baseId = Manifest.idOf(baseVersion);
+                if (!baseId.equals(targetId)) {
+                    Map<String, Object> upd = Manifest.updateOf(target, baseId);
+                    if (upd == null) throw new IOException("No update path from " + baseId + " to " + targetId);
+                    progress.stage(STAGE_APPLY);
+                    Updater.applyPackage(downloadEntry(upd, (String) upd.get("file"), progress), staging, progress::progress);
+                }
             }
-            progress.stage(STAGE_DOWNLOAD);
-            String file = (String) upd.get("file");
-            Path pkg = downloadEntry(upd, file, progress);
-            verifyPart(pkg, upd);
-            progress.stage(STAGE_APPLY);
-            Updater.applyPackage(pkg, gameDir, progress::progress);
+            Updater.removeExtras(staging, files, null);
+            progress.stage(STAGE_VERIFY);
+            List<String> problems = Updater.verify(staging, files, null, progress::progress);
+            if (!problems.isEmpty()) throw new IOException("Verification failed: " + summarize(problems));
+            if (Files.isDirectory(gameDir)) {
+                Files.move(gameDir, backup, StandardCopyOption.ATOMIC_MOVE);
+                movedOld = true;
+            }
+            Files.move(staging, gameDir, StandardCopyOption.ATOMIC_MOVE);
+            settings.setInstalledVersion(targetId);
+            deleteTree(backup);
+        } catch (Exception e) {
+            if (movedOld && !Files.exists(gameDir) && Files.exists(backup)) Files.move(backup, gameDir, StandardCopyOption.ATOMIC_MOVE);
+            deleteTree(staging);
+            throw e;
         }
+    }
 
-        // sweep files that do not belong to the target version
-        @SuppressWarnings("unchecked")
-        Map<String, Object> files = (Map<String, Object>) target.get("files");
-        Updater.removeExtras(gameDir, files, null);
-
-        progress.stage(STAGE_VERIFY);
-        List<String> problems = Updater.verify(gameDir, files, null, progress::progress);
-        if (!problems.isEmpty()) {
-            throw new IOException("Verification failed: " + summarize(problems));
+    private static void copyTree(Path source, Path destination) throws IOException {
+        try (var walk = Files.walk(source)) {
+            for (Path p : walk.toList()) {
+                Path target = destination.resolve(source.relativize(p));
+                if (Files.isDirectory(p)) Files.createDirectories(target);
+                else Files.copy(p, target, StandardCopyOption.REPLACE_EXISTING);
+            }
         }
-        settings.setInstalledVersion(targetId);
+    }
+
+    private static void deleteTree(Path root) throws IOException {
+        if (!Files.exists(root)) return;
+        try (var walk = Files.walk(root)) {
+            for (Path p : walk.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(p);
+        }
     }
 
     /** The target version itself if it has a base, else the nearest older

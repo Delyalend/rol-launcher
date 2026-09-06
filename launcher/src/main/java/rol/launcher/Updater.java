@@ -43,9 +43,12 @@ public final class Updater {
     public static List<String> packagePaths(Path packageZip) throws IOException {
         List<String> paths = new ArrayList<>();
         try (ZipFile zf = new ZipFile(packageZip.toFile(), StandardCharsets.UTF_8)) {
+            Set<String> seen = new HashSet<>();
             for (Enumeration<? extends ZipEntry> e = zf.entries(); e.hasMoreElements(); ) {
                 String name = e.nextElement().getName();
                 if (!name.equals(REMOVED_ENTRY) && !name.endsWith("/")) {
+                    safeRelative(name);
+                    if (!seen.add(name)) throw new IOException("Duplicate archive entry: " + name);
                     paths.add(name);
                 }
             }
@@ -66,8 +69,10 @@ public final class Updater {
                 entries.add(e.nextElement());
             }
             int done = 0;
+            Set<String> seen = new HashSet<>();
             for (ZipEntry entry : entries) {
                 String name = entry.getName();
+                if (!seen.add(name)) throw new IOException("Duplicate archive entry: " + name);
                 if (name.equals(REMOVED_ENTRY)) {
                     try (BufferedReader r = new BufferedReader(new InputStreamReader(
                             zf.getInputStream(entry), StandardCharsets.UTF_8))) {
@@ -75,12 +80,13 @@ public final class Updater {
                         while ((line = r.readLine()) != null) {
                             line = line.trim();
                             if (!line.isEmpty()) {
+                                safeRelative(line);
                                 removed.add(line);
                             }
                         }
                     }
                 } else if (!entry.isDirectory()) {
-                    Path dest = gameDir.resolve(name);
+                    Path dest = safeResolve(gameDir, name);
                     Files.createDirectories(dest.getParent());
                     try (InputStream in = zf.getInputStream(entry)) {
                         Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
@@ -93,7 +99,7 @@ public final class Updater {
             }
         }
         for (String rel : removed) {
-            Files.deleteIfExists(gameDir.resolve(rel));
+            Files.deleteIfExists(safeResolve(gameDir, rel));
         }
     }
 
@@ -118,7 +124,7 @@ public final class Updater {
                 if (entry.isDirectory()) {
                     continue;
                 }
-                Path dest = gameDir.resolve(entry.getName());
+                Path dest = safeResolve(gameDir, entry.getName());
                 Files.createDirectories(dest.getParent());
                 Files.copy(zip, dest, StandardCopyOption.REPLACE_EXISTING);
             }
@@ -177,6 +183,41 @@ public final class Updater {
                 }
             }
         }
+    }
+
+    private static Path safeResolve(Path root, String name) throws IOException {
+        String safe = safeRelative(name);
+        Path normalizedRoot = root.toAbsolutePath().normalize();
+        Path result = normalizedRoot.resolve(safe).normalize();
+        if (!result.startsWith(normalizedRoot)) {
+            throw new IOException("Archive path escapes target directory: " + name);
+        }
+        Path current = normalizedRoot;
+        Path relative = normalizedRoot.relativize(result);
+        for (Path part : relative) {
+            current = current.resolve(part);
+            if (Files.isSymbolicLink(current)) {
+                throw new IOException("Archive path crosses a symbolic link: " + name);
+            }
+        }
+        return result;
+    }
+
+    private static String safeRelative(String name) throws IOException {
+        if (name == null || name.isBlank() || name.indexOf('\0') >= 0) {
+            throw new IOException("Invalid archive path");
+        }
+        String normalized = name.replace('\\', '/');
+        Path path = Path.of(normalized);
+        if (path.isAbsolute() || normalized.startsWith("/") || normalized.matches("^[A-Za-z]:.*")) {
+            throw new IOException("Absolute archive path is not allowed: " + name);
+        }
+        for (Path part : path) {
+            if (part.toString().equals("..")) {
+                throw new IOException("Parent traversal is not allowed: " + name);
+            }
+        }
+        return normalized;
     }
 
     public static String sha256Hex(Path p) throws IOException, NoSuchAlgorithmException {
