@@ -143,6 +143,7 @@ public final class VersionManager {
                 }
                 progress.stage(STAGE_EXTRACT);
                 Updater.extractBase(volumes.toArray(Path[]::new), staging, progress::progress);
+                preserveUserData(gameDir, staging);
                 String baseId = Manifest.idOf(baseVersion);
                 if (!baseId.equals(targetId)) {
                     Map<String, Object> upd = Manifest.updateOf(target, baseId);
@@ -172,6 +173,17 @@ public final class VersionManager {
             deleteTree(staging);
             try { journal.delete(); } catch (IOException ignored) { }
             throw e;
+        }
+    }
+
+    private static final List<String> USER_DATA_DIRS = List.of(
+            "custom maps", "savegames", "profiles", "screenshots", "replays");
+
+    private static void preserveUserData(Path live, Path staging) throws IOException {
+        if (!Files.isDirectory(live)) return;
+        for (String relative : USER_DATA_DIRS) {
+            Path source = live.resolve(relative);
+            if (Files.exists(source)) copyTree(source, staging.resolve(relative));
         }
     }
 

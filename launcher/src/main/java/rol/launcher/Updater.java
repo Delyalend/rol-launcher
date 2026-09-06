@@ -175,10 +175,17 @@ public final class Updater {
      */
     public static void removeExtras(Path gameDir, Map<String, Object> files,
                                     ProgressListener listener) throws IOException {
+        removeExtras(gameDir, files, Set.of(), listener);
+    }
+
+    public static void removeExtras(Path gameDir, Map<String, Object> files,
+                                    Set<String> preservedPrefixes, ProgressListener listener) throws IOException {
         try (var walk = Files.walk(gameDir)) {
             for (Path p : walk.filter(Files::isRegularFile).toList()) {
                 String rel = gameDir.relativize(p).toString().replace('\\', '/');
-                if (!files.containsKey(rel)) {
+                boolean preserved = preservedPrefixes.stream().anyMatch(prefix ->
+                        rel.equals(prefix) || rel.startsWith(prefix + "/"));
+                if (!files.containsKey(rel) && !preserved) {
                     Files.deleteIfExists(p);
                 }
             }
