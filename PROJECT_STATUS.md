@@ -16,6 +16,9 @@ Published releases:
 - `v0.2.0` — camera zoom-out patch, update package only (~4 MB).
 - `launcher-v0.1.0` — portable launcher ZIP with native `RoLauncher.exe`
   and bundled runtime.
+- `launcher-v0.1.1` — portable launcher with cache verification, path-aware
+  state, safe staged switching, game-process protection, recovery journal,
+  and manifest validation.
 
 Manifest URL baked into the launcher:
 
@@ -121,14 +124,14 @@ The update pipeline and portable launcher are working in production:
 6. launcher applies and verifies it;
 7. game camera can zoom farther out.
 
-The latest completed work includes cache verification (`70ef5ab`), path-aware installation state (`a3788d2`), game-process protection (`4c40331`), switch recovery journal (`1d1892d`), and manifest validation (`5c6b79b`). The user confirmed that switching works and is blocked while the game is running. Next: publish launcher-v0.1.1.
+The latest completed work includes cache verification (`70ef5ab`), path-aware installation state (`a3788d2`), game-process protection (`4c40331`), switch recovery journal (`1d1892d`), and manifest validation (`5c6b79b`). The user confirmed that switching works and is blocked while the game is running. Launcher-v0.1.1 is now published.
 
 ## Recommended next steps
 
 ### Priority 1 — launcher distribution/update
 
-- Publish the newest portable launcher build after cache changes as a new
-  launcher release, for example `launcher-v0.1.1`.
+- [x] Publish `launcher-v0.1.1` with cache, safe switching, process guard,
+  recovery journal, and manifest validation changes.
 - Tell the brother to replace the previous launcher ZIP.
 - Consider building a real Windows installer (`.msi` or `.exe`) with
   `jpackage`; portable ZIP already works.

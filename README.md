@@ -68,7 +68,10 @@ stored in git — they live in GitHub Releases as artifacts.
 - [x] Launcher main screen: installed/latest version, update check, game launch
 - [x] Launcher: download with resume, install from base volumes, apply update packages
 - [x] Launcher: version switching (in place, forward packages / backward via base)
-- [ ] First release published to GitHub Releases
+- [x] First game release (`v0.1.0`) published to GitHub Releases
+- [x] First camera update (`v0.2.0`) published and installed through the launcher
+- [x] First portable launcher release (`launcher-v0.1.0`) published
+- [ ] Publish next launcher release (`launcher-v0.1.1`) with the latest hardening changes
 
 ## Build
 
