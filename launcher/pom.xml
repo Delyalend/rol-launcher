@@ -30,6 +30,13 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>rol.launcher/rol.launcher.App</mainClass>
+                    <launcher>RoLauncher</launcher>
+                    <jlinkImageName>RoLauncher</jlinkImageName>
+                    <jlinkZipName>RoLauncher</jlinkZipName>
+                    <stripDebug>true</stripDebug>
+                    <compress>2</compress>
+                    <noHeaderFiles>true</noHeaderFiles>
+                    <noManPages>true</noManPages>
                 </configuration>
             </plugin>
         </plugins>
