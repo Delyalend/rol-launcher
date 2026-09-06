@@ -143,6 +143,10 @@ Battaglion's Improved Mortar abilities require
 Battaglion's Timonium Shot abilities additionally require the unit records
 `Battaglion Boosted` and `Battaglion Boosted 4` in `unitrules.xml`.
 
+Distruzio's abilities require eight bonus records in `techrules.xml`:
+`Distruzio GA Bonus`, `AA Bonus`, `BA Bonus`, `Hits Bonus` and their `4`
+variants.
+
 The public tooling situation is limited: the original BHG runtime compiler is
 not available, but the community has preserved the official RoL modding guides
 and BIG tools. The Rise of Legends guide pack includes the BHG Scripting Kit,
