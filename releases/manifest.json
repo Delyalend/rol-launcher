@@ -47138,17 +47138,20 @@
       "v0.1.0": {
         "file": "update-v0.1.0-v0.4.0.zip",
         "size": 20785609,
-        "sha256": "a8dc071a4bfe7751a715e4784f9c7fe234cdbd8e24dc79be49b3f09430215943"
+        "sha256": "a8dc071a4bfe7751a715e4784f9c7fe234cdbd8e24dc79be49b3f09430215943",
+        "url": "https://github.com/Delyalend/rol-launcher/releases/download/v0.4.0/update-v0.1.0-v0.4.0.zip"
       },
       "v0.2.0": {
         "file": "update-v0.2.0-v0.4.0.zip",
         "size": 20785609,
-        "sha256": "3a1e3f1825355c392c8f603464a65ed2adbe24847fac47178fae5afe471c1aee"
+        "sha256": "3a1e3f1825355c392c8f603464a65ed2adbe24847fac47178fae5afe471c1aee",
+        "url": "https://github.com/Delyalend/rol-launcher/releases/download/v0.4.0/update-v0.2.0-v0.4.0.zip"
       },
       "v0.3.0": {
         "file": "update-v0.3.0-v0.4.0.zip",
         "size": 20776717,
-        "sha256": "c8b85ed55fbf9bfb09a733fdd644294a130b9db685d9f4c30e60013caeeb17ae"
+        "sha256": "c8b85ed55fbf9bfb09a733fdd644294a130b9db685d9f4c30e60013caeeb17ae",
+        "url": "https://github.com/Delyalend/rol-launcher/releases/download/v0.4.0/update-v0.3.0-v0.4.0.zip"
       }
     },
     "files": {
