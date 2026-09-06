@@ -115,6 +115,11 @@ Abilities that create buildings also need their referenced building records in
 Gun`, `Defense Gun 3` and `Defense Gun 4`; all three base building records
 must be present in every multiplayer archive layer.
 
+Some ability `DATA0` values are bonus keys rather than spells or buildings.
+Carlini's Scope uses `Scope Bonus`, `Scope Bonus 3` and `Scope Bonus 4`; these
+records belong in `techrules.xml` and must also be copied to every multiplayer
+archive layer.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
