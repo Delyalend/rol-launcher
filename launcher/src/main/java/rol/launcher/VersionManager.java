@@ -115,6 +115,9 @@ public final class VersionManager {
         if (target == null) throw new IOException("Version is not in the manifest: " + targetId);
         if (settings.getGamePath().isBlank()) throw new IOException("Game folder is not set in the settings");
         Path gameDir = Path.of(settings.getGamePath()).toAbsolutePath().normalize();
+        if (!GameRunner.canModifyInstallation(gameDir.toString())) {
+            throw new IOException("The game is running; close it before switching versions");
+        }
         Path staging = gameDir.resolveSibling(gameDir.getFileName() + ".rol-staging-" + UUID.randomUUID());
         Path backup = gameDir.resolveSibling(gameDir.getFileName() + ".rol-backup-" + UUID.randomUUID());
         Files.createDirectories(staging);

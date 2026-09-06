@@ -39,13 +39,30 @@ public final class GameRunner {
     }
 
     /** Starts legends.exe with the game folder as the working directory. */
-    public static void launch(String gamePath) throws IOException {
+    public static synchronized void launch(String gamePath) throws IOException {
         Path exe = findGameExe(gamePath);
         if (exe == null) {
             throw new IOException("Game executable not found in " + gamePath);
         }
+        if (isGameProcessRunning(gamePath)) {
+            throw new IOException("The game is already running");
+        }
         launchedProcess = new ProcessBuilder(exe.toString())
                 .directory(exe.getParent().toFile())
                 .start();
+    }
+
+    /** Best-effort check for any process running this installation's executable. */
+    public static boolean isGameProcessRunning(String gamePath) {
+        Path exe = findGameExe(gamePath);
+        if (exe == null) return false;
+        String expected = exe.toAbsolutePath().normalize().toString().toLowerCase();
+        return ProcessHandle.allProcesses().anyMatch(p -> p.info().command()
+                .map(command -> command.toLowerCase().equals(expected))
+                .orElse(false));
+    }
+
+    public static boolean canModifyInstallation(String gamePath) {
+        return !isRunning() && !isGameProcessRunning(gamePath);
     }
 }
