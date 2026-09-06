@@ -1,0 +1,6 @@
+Enable additional campaign heroes in Skirmish and multiplayer.
+
+- Added hero abilities and their required unit, building and technology records.
+- Added missing ability dependencies for Andromolek, Arri, Belisari, Battaglion, Carlini, Distruzio, Venza, Kakoolha and Yontash.
+- Removed unavailable campaign-only spell chains from the multiplayer rules.
+- Fixed the invalid Reincarnation graft chain.

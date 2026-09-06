@@ -73,6 +73,7 @@ stored in git — they live in GitHub Releases as artifacts.
 - [x] First portable launcher release (`launcher-v0.1.0`) published
 - [x] Launcher hardening release (`launcher-v0.1.1`) published
 - [x] Modern UI and existing-folder detection release (`launcher-v0.1.2`) published
+- [x] Hero availability release (`v0.4.0`) and portable launcher (`launcher-v0.1.3`) published
 
 ## Build
 
