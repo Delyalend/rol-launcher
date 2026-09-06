@@ -96,6 +96,14 @@ can reintroduce invalid campaign-only spell references. Apply the same
 craftrules replacement to every `mod_data.big` and `multiplayer_data.big`
 layer, including `BIGS/patches/*`.
 
+Some copied abilities use a `reference_name` that points to a shared base
+craft which is not tied to a hero. Those base records must be copied too. For
+example, Distruzio's abilities reference `Gamble`; the multiplayer file needs
+the campaign record with `TYPENAME=Gamble` even though its `WHERE` is `None`.
+After merging, validate that every non-empty `reference_name` resolves to a
+`TYPENAME` in the same craftrules file. Otherwise the game reports an
+`Invalid keyphrase ... in SPELLS` error while loading the rules.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
