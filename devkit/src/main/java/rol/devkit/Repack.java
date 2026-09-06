@@ -313,37 +313,46 @@ final class Repack {
                 System.out.println("SKIP (no source): " + src);
                 continue;
             }
-            byte[] data = Files.readAllBytes(src);
-            ParseResult parsed = parse(data);
-            if (parsed == null) {
-                throw new IOException("cannot parse " + src);
-            }
-            Files.copy(src, backup.resolve("orig_" + src.getFileName()),
-                    StandardCopyOption.REPLACE_EXISTING);
-            String key = norm(entryName);
-            boolean replaced = false;
-            for (Entry e : parsed.entries) {
-                e.keepRaw = true; // untouched entries keep their original bytes
-                if (norm(e.name).equals(key)) {
-                    if (e.payload != null && e.payload.length >= 4 && e.payload[0] == 1) {
-                        throw new IOException("refusing to patch compiled entry: " + e.name);
-                    }
-                    e.payload = content;
-                    e.raw = null;
-                    e.size = content.length;
-                    e.keepRaw = false;
-                    replaced = true;
-                }
-            }
-            if (!replaced) {
-                throw new IOException("entry not found: " + entryName + " in " + src);
-            }
-            byte[] out = build(data, parsed.block2Start, parsed.entries);
-            Files.createDirectories(dst.getParent());
-            Files.write(dst, out);
-            ParseResult check = parse(out);
-            System.out.println("patched " + dst + " (" + (check != null ? "OK" : "FAIL") + ")");
+            patchArchive(src, dst, backup.resolve("orig_" + src.getFileName()),
+                    entryName, content);
         }
+    }
+
+    /** Patch one archive in place (or into a separate destination), preserving all other entries. */
+    public static void patchArchive(Path src, Path dst, Path backupFile,
+                                    String entryName, byte[] content) throws IOException {
+        byte[] data = Files.readAllBytes(src);
+        ParseResult parsed = parse(data);
+        if (parsed == null) {
+            throw new IOException("cannot parse " + src);
+        }
+        if (backupFile != null) {
+            Files.createDirectories(backupFile.toAbsolutePath().normalize().getParent());
+            Files.copy(src, backupFile, StandardCopyOption.REPLACE_EXISTING);
+        }
+        String key = norm(entryName);
+        boolean replaced = false;
+        for (Entry e : parsed.entries) {
+            e.keepRaw = true; // untouched entries keep their original bytes
+            if (norm(e.name).equals(key)) {
+                if (e.payload != null && e.payload.length >= 4 && e.payload[0] == 1) {
+                    throw new IOException("refusing to patch compiled entry: " + e.name);
+                }
+                e.payload = content;
+                e.raw = null;
+                e.size = content.length;
+                e.keepRaw = false;
+                replaced = true;
+            }
+        }
+        if (!replaced) {
+            throw new IOException("entry not found: " + entryName + " in " + src);
+        }
+        byte[] out = build(data, parsed.block2Start, parsed.entries);
+        Files.createDirectories(dst.toAbsolutePath().normalize().getParent());
+        Files.write(dst, out);
+        ParseResult check = parse(out);
+        System.out.println("patched " + dst + " (" + (check != null ? "OK" : "FAIL") + ")");
     }
 
     // ---------- helpers ----------

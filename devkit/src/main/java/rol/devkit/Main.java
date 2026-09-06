@@ -64,6 +64,15 @@ public final class Main {
                     BigArchiveTool.extract(args[1], args[2],
                             List.of(args).subList(3, args.length));
                 }
+                case "patch-archive" -> {
+                    if (args.length < 5) { usage(); return; }
+                    java.nio.file.Path backup = args.length > 5
+                            ? java.nio.file.Path.of(args[5]) : null;
+                    byte[] content = java.nio.file.Files.readAllBytes(
+                            java.nio.file.Path.of(args[4]));
+                    Repack.patchArchive(java.nio.file.Path.of(args[1]),
+                            java.nio.file.Path.of(args[2]), backup, args[3], content);
+                }
                 case "convert-image" -> {
                     if (args.length < 3) { usage(); return; }
                     ImageConvertTool.convert(args[1], args[2]);
