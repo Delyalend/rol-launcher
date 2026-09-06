@@ -135,4 +135,4 @@ Launcher state (installed version, paths) is stored locally in
 ## Status
 
 Portable Windows releases are published on GitHub Releases. The current
-launcher release is `launcher-v0.1.3`.
+launcher release is `launcher-v0.1.4`.

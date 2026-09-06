@@ -329,10 +329,34 @@ public final class VersionManager {
                 progress::progress, size, hash);
     }
 
-    /** Download URL: the explicit "url" field wins, otherwise next-to-manifest. */
+    /**
+     * Download URL: the explicit "url" field wins. For a raw GitHub manifest,
+     * fall back to the matching GitHub Release asset before trying next-to-manifest.
+     * This keeps old manifests usable when binary packages are published as release assets.
+     */
     private String entryUrl(Map<String, Object> entry, String file) {
         Object url = entry.get("url");
-        return (url != null && !url.toString().isBlank()) ? url.toString() : fileUrl(file);
+        if (url != null && !url.toString().isBlank()) return url.toString();
+        String releaseUrl = githubReleaseAssetUrl(file);
+        return releaseUrl != null ? releaseUrl : fileUrl(file);
+    }
+
+    private String githubReleaseAssetUrl(String file) {
+        String manifestUrl = settings.getManifestUrl();
+        String prefix = "https://raw.githubusercontent.com/";
+        if (!manifestUrl.startsWith(prefix)) return null;
+
+        String rest = manifestUrl.substring(prefix.length());
+        String[] parts = rest.split("/");
+        if (parts.length < 2 || parts[0].isBlank() || parts[1].isBlank()) return null;
+
+        int marker = file.lastIndexOf("-v");
+        if (marker < 0 || !file.endsWith(".zip")) return null;
+        String tag = file.substring(marker + 1, file.length() - 4);
+        if (!tag.matches("v[0-9A-Za-z][0-9A-Za-z._-]*")) return null;
+
+        return "https://github.com/" + parts[0] + "/" + parts[1]
+                + "/releases/download/" + tag + "/" + file;
     }
 
     /** Files live next to the manifest: manifest URL base + file name. */
