@@ -61,7 +61,7 @@ public final class VersionsDialog extends Dialog<Void> {
                 : (!installed.isBlank() && Manifest.updateOf(version, installed) != null
                 ? I18n.get("versions.direct") : I18n.get("versions.rebuild"));
         long download = current ? 0 : manifestDownload(version, installed);
-        long disk = Manifest.installedSizeOf(version) + download;
+        long freeSpace = Manifest.installedSizeOf(version) + download;
 
         Label title = new Label((current ? "• " : "") + id);
         title.getStyleClass().add("version-title");
@@ -76,7 +76,7 @@ public final class VersionsDialog extends Dialog<Void> {
         installedBadge.setManaged(current);
         Label date = new Label(I18n.get("versions.date", formatDate(Manifest.dateOf(version))));
         Label method = new Label(I18n.get("versions.mode", mode));
-        Label size = new Label(I18n.get("versions.size", formatBytes(download), formatBytes(disk)));
+        Label size = new Label(I18n.get("versions.size", formatBytes(download), formatBytes(freeSpace)));
         HBox meta = new HBox(18, date, method, size);
         meta.getStyleClass().add("version-meta");
 
