@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -18,6 +20,7 @@ public final class SettingsManager {
     public static final String KEY_MANIFEST_URL = "manifestUrl";
     public static final String KEY_GAME_PATH = "gamePath";
     public static final String KEY_INSTALLED_VERSION = "installedVersion";
+    public static final String KEY_INSTALLED_PATH = "installedPath";
     private static final String FILE_NAME = "settings.properties";
 
     /** Baked-in manifest URL; the setting overrides it. */
@@ -68,17 +71,24 @@ public final class SettingsManager {
     }
 
     public void setGamePath(String path) {
-        if (path == null || path.isBlank()) {
-            props.remove(KEY_GAME_PATH);
-        } else {
-            props.setProperty(KEY_GAME_PATH, path.trim());
+        String old = getGamePath();
+        String normalized = path == null || path.isBlank() ? "" : normalizePath(path);
+        if (!old.equals(normalized)) {
+            props.setProperty(KEY_GAME_PATH, normalized);
+            String recordedPath = props.getProperty(KEY_INSTALLED_PATH, "");
+            if (!recordedPath.isBlank() && !recordedPath.equals(normalized)) {
+                props.remove(KEY_INSTALLED_VERSION);
+            }
         }
         save();
     }
 
-    /** Locally recorded installed version id; empty = not installed. */
+    /** Locally recorded installed version id, valid only for the selected path. */
     public String getInstalledVersion() {
-        return props.getProperty(KEY_INSTALLED_VERSION, "");
+        String configured = getGamePath();
+        String recorded = props.getProperty(KEY_INSTALLED_PATH, "");
+        return !configured.isBlank() && configured.equals(recorded)
+                ? props.getProperty(KEY_INSTALLED_VERSION, "") : "";
     }
 
     public void setInstalledVersion(String version) {
@@ -86,17 +96,26 @@ public final class SettingsManager {
             props.remove(KEY_INSTALLED_VERSION);
         } else {
             props.setProperty(KEY_INSTALLED_VERSION, version.trim());
+            props.setProperty(KEY_INSTALLED_PATH, getGamePath());
         }
         save();
+    }
+
+    private static String normalizePath(String path) {
+        return Path.of(path.trim()).toAbsolutePath().normalize().toString();
     }
 
     private void save() {
         Path file = settingsFile();
         try {
             Files.createDirectories(file.getParent());
-            try (OutputStream out = Files.newOutputStream(file)) {
+            Path temp = file.resolveSibling(FILE_NAME + ".tmp");
+            try (OutputStream out = Files.newOutputStream(temp,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 props.store(out, "RoLauncher settings");
             }
+            Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
             // keep settings in memory only
         }
