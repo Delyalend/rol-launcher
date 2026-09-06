@@ -140,6 +140,9 @@ Battaglion's Improved Mortar abilities require
 `Improved Mortar Bonus`, `Improved Mortar Bonus 3` and `Improved Mortar Bonus
 4` in `techrules.xml`.
 
+Battaglion's Timonium Shot abilities additionally require the unit records
+`Battaglion Boosted` and `Battaglion Boosted 4` in `unitrules.xml`.
+
 The public tooling situation is limited: the original BHG runtime compiler is
 not available, but the community has preserved the official RoL modding guides
 and BIG tools. The Rise of Legends guide pack includes the BHG Scripting Kit,
