@@ -125,6 +125,14 @@ are required in `unitrules.xml`. Carlini's Heroic Charge uses
 `Carlini Heroic Charge` and `Carlini Heroic Charge 4`; both records must be
 copied along with the hero unit definitions.
 
+The game's diagnostic window is a runtime rules-parser error, not a process
+crash. A still-running `legends.exe` therefore does not prove that loading
+completed successfully. Before distributing a build, validate cross-file
+dependencies and inspect the startup window for any `ОШИБКА ВНГ` dialog.
+For Venza's Flyer Upgrade abilities, the required bonus records are
+`Flyer Upgrade Bonus`, `Flyer Upgrade Bonus 3` and `Flyer Upgrade Bonus 4` in
+`techrules.xml`.
+
 ## What will NOT be here
 
 - The full game copy (2.9 GB) — it lives in GitHub Releases.
