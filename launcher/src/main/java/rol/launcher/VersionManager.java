@@ -46,6 +46,22 @@ public final class VersionManager {
         return SettingsManager.settingsDir().resolve("cache");
     }
 
+    /** Recover an unfinished switch before the launcher starts using the game. */
+    public static void recover(Path gameDir) throws IOException {
+        SwitchJournal journal = SwitchJournal.load(gameDir);
+        if (journal == null) return;
+        Log.error("Recovering unfinished switch: " + journal.state, null);
+        if (journal.state == SwitchJournal.State.OLD_MOVED
+                && !Files.exists(journal.game) && Files.exists(journal.backup)) {
+            Files.move(journal.backup, journal.game, StandardCopyOption.ATOMIC_MOVE);
+        } else if (journal.state == SwitchJournal.State.NEW_MOVED
+                && Files.exists(journal.game)) {
+            deleteTree(journal.backup);
+        }
+        deleteTree(journal.staging);
+        journal.delete();
+    }
+
     /** Fresh install from the base archive volumes of the latest version. */
     public void installBase(Manifest manifest, Progress progress)
             throws IOException, InterruptedException, NoSuchAlgorithmException {
@@ -102,6 +118,7 @@ public final class VersionManager {
         Path staging = gameDir.resolveSibling(gameDir.getFileName() + ".rol-staging-" + UUID.randomUUID());
         Path backup = gameDir.resolveSibling(gameDir.getFileName() + ".rol-backup-" + UUID.randomUUID());
         Files.createDirectories(staging);
+        SwitchJournal journal = SwitchJournal.create(gameDir, staging, backup, targetId);
         boolean movedOld = false;
         try {
             Map<String, Object> direct = Manifest.updateOf(target, current);
@@ -135,16 +152,22 @@ public final class VersionManager {
             progress.stage(STAGE_VERIFY);
             List<String> problems = Updater.verify(staging, files, null, progress::progress);
             if (!problems.isEmpty()) throw new IOException("Verification failed: " + summarize(problems));
+            if (GameRunner.isRunning()) throw new IOException("The game is still running");
             if (Files.isDirectory(gameDir)) {
                 Files.move(gameDir, backup, StandardCopyOption.ATOMIC_MOVE);
                 movedOld = true;
+                journal.setState(SwitchJournal.State.OLD_MOVED);
             }
             Files.move(staging, gameDir, StandardCopyOption.ATOMIC_MOVE);
+            journal.setState(SwitchJournal.State.NEW_MOVED);
             settings.setInstalledVersion(targetId);
+            journal.setState(SwitchJournal.State.COMMITTED);
+            journal.delete();
             deleteTree(backup);
         } catch (Exception e) {
             if (movedOld && !Files.exists(gameDir) && Files.exists(backup)) Files.move(backup, gameDir, StandardCopyOption.ATOMIC_MOVE);
             deleteTree(staging);
+            try { journal.delete(); } catch (IOException ignored) { }
             throw e;
         }
     }

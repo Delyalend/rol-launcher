@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.nio.file.Path;
 
 /**
  * Launcher entry point: main screen with installed/latest version,
@@ -79,6 +80,11 @@ public class App extends Application {
         this.stage = stage;
         I18n.setLocale(settings.getLanguage());
         Log.info("Launcher started, version-check URL: " + settings.getManifestUrl());
+        try {
+            if (!settings.getGamePath().isBlank()) VersionManager.recover(Path.of(settings.getGamePath()));
+        } catch (Exception e) {
+            Log.error("Switch recovery failed", e);
+        }
         buildUi();
         applyI18n();
         stage.show();
