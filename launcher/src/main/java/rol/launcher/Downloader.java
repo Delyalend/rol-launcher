@@ -12,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 
 /**
@@ -36,9 +38,35 @@ public final class Downloader {
 
     public static Path download(String url, Path destDir, String fileName, ProgressListener listener)
             throws IOException, InterruptedException {
+        return download(url, destDir, fileName, listener, null, null);
+    }
+
+    /**
+     * Downloads or reuses a cached file. If expectedSize and expectedSha256
+     * are both present and the final file matches, no network request is made.
+     * A mismatching cached file is removed before downloading.
+     */
+    public static Path download(String url, Path destDir, String fileName,
+                                ProgressListener listener, Long expectedSize,
+                                String expectedSha256)
+            throws IOException, InterruptedException {
         Files.createDirectories(destDir);
+        Path dest = destDir.resolve(fileName);
+        if (expectedSize != null && expectedSha256 != null && Files.isRegularFile(dest)) {
+            if (Files.size(dest) == expectedSize && sha256Hex(dest).equalsIgnoreCase(expectedSha256)) {
+                if (listener != null) listener.onProgress(expectedSize, expectedSize);
+                Log.info("Using cached file: " + dest.getFileName());
+                return dest;
+            }
+            Files.deleteIfExists(dest);
+            Log.info("Cached file failed verification, redownloading: " + dest.getFileName());
+        }
         Path part = destDir.resolve(fileName + ".part");
         long existing = Files.exists(part) ? Files.size(part) : 0L;
+        if (expectedSize != null && existing > expectedSize) {
+            Files.deleteIfExists(part);
+            existing = 0L;
+        }
 
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofHours(2))
@@ -92,8 +120,30 @@ public final class Downloader {
             }
         }
 
-        Path dest = destDir.resolve(fileName);
         Files.move(part, dest, StandardCopyOption.REPLACE_EXISTING);
+        if (expectedSize != null && Files.size(dest) != expectedSize) {
+            throw new IOException("Downloaded size mismatch for " + fileName);
+        }
+        if (expectedSha256 != null && !sha256Hex(dest).equalsIgnoreCase(expectedSha256)) {
+            Files.deleteIfExists(dest);
+            throw new IOException("Downloaded checksum mismatch for " + fileName);
+        }
         return dest;
+    }
+
+    private static String sha256Hex(Path file) throws IOException {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            try (InputStream in = Files.newInputStream(file)) {
+                byte[] buf = new byte[1 << 16];
+                int n;
+                while ((n = in.read(buf)) > 0) md.update(buf, 0, n);
+            }
+            StringBuilder out = new StringBuilder(64);
+            for (byte b : md.digest()) out.append(String.format("%02x", b));
+            return out.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException("SHA-256 is unavailable", e);
+        }
     }
 }

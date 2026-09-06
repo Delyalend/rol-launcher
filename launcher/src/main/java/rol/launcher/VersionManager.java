@@ -64,8 +64,7 @@ public final class VersionManager {
         List<Path> volumes = new ArrayList<>();
         for (Map<String, Object> part : parts) {
             String file = (String) part.get("file");
-            Path local = Downloader.download(entryUrl(part, file), cacheDir(), file,
-                    progress::progress);
+            Path local = downloadEntry(part, file, progress);
             verifyPart(local, part);
             volumes.add(local);
         }
@@ -122,7 +121,7 @@ public final class VersionManager {
         List<Path> volumes = new ArrayList<>();
         for (Map<String, Object> part : Manifest.basePartsOf(baseVersion)) {
             String file = (String) part.get("file");
-            Path local = Downloader.download(entryUrl(part, file), cacheDir(), file, progress::progress);
+            Path local = downloadEntry(part, file, progress);
             verifyPart(local, part);
             volumes.add(local);
         }
@@ -138,7 +137,7 @@ public final class VersionManager {
             }
             progress.stage(STAGE_DOWNLOAD);
             String file = (String) upd.get("file");
-            Path pkg = Downloader.download(entryUrl(upd, file), cacheDir(), file, progress::progress);
+            Path pkg = downloadEntry(upd, file, progress);
             verifyPart(pkg, upd);
             progress.stage(STAGE_APPLY);
             Updater.applyPackage(pkg, gameDir, progress::progress);
@@ -198,7 +197,7 @@ public final class VersionManager {
 
         progress.stage(STAGE_DOWNLOAD);
         String file = (String) upd.get("file");
-        Path pkg = Downloader.download(entryUrl(upd, file), cacheDir(), file, progress::progress);
+        Path pkg = downloadEntry(upd, file, progress);
         verifyPart(pkg, upd);
 
         Path gameDir = Path.of(settings.getGamePath());
@@ -227,6 +226,14 @@ public final class VersionManager {
         if (!Updater.sha256Hex(local).equals(wantHash)) {
             throw new IOException("Checksum mismatch for " + local.getFileName());
         }
+    }
+
+    private Path downloadEntry(Map<String, Object> entry, String file, Progress progress)
+            throws IOException, InterruptedException {
+        long size = ((Number) entry.get("size")).longValue();
+        String hash = (String) entry.get("sha256");
+        return Downloader.download(entryUrl(entry, file), cacheDir(), file,
+                progress::progress, size, hash);
     }
 
     /** Download URL: the explicit "url" field wins, otherwise next-to-manifest. */
